@@ -8,7 +8,6 @@ import java.security.SecureRandom;
 public class AES {
 
     private final int amountOfRounds = 10;
-    private final int keySize = 128;
     private final int blockSize = 16;
     private byte[] data;
     private BigInteger mainKey;
