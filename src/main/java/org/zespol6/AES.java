@@ -2,9 +2,13 @@ package org.zespol6;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.SecureRandom;
 
 public class AES {
+
+    private final int amountOfRounds = 10;
+    private final int keySize = 128;
 
     // Każdy bajt danych jest zastępowany innym bajtem zgodnie z tabelą SBOX. Konstrukcja tabeli gwarantuje nieliniowość zastępowania.
     private final int[][] SBOX = {
@@ -38,12 +42,8 @@ public class AES {
         }
     }
 
-    public byte[] generateKey() {
-        byte[] key = new byte[16];
-        // W przeciwieństwie do zwykłego Random, SecureRandom jest zaprojektowany tak, aby unikać przewidywalnych sekwencji liczb
-        SecureRandom random = new SecureRandom();
-        // Wypełnienie tablicy losowymi bajtami
-        random.nextBytes(key);
+    public BigInteger generateKey() {
+        BigInteger key = new BigInteger(keySize, new SecureRandom());
         return key;
     }
 
