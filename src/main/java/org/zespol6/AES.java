@@ -2,6 +2,7 @@ package org.zespol6;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.SecureRandom;
 
 public class AES {
 
@@ -35,6 +36,15 @@ public class AES {
             e.printStackTrace();
             return new byte[0];
         }
+    }
+
+    public byte[] generateKey() {
+        byte[] key = new byte[16];
+        // W przeciwieństwie do zwykłego Random, SecureRandom jest zaprojektowany tak, aby unikać przewidywalnych sekwencji liczb
+        SecureRandom random = new SecureRandom();
+        // Wypełnienie tablicy losowymi bajtami
+        random.nextBytes(key);
+        return key;
     }
 
 }
