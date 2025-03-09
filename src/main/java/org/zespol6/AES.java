@@ -44,11 +44,13 @@ public class AES {
     }
 
     public byte[] getData() {
-        return data;
+        return (data != null) ? data : new byte[0];
     }
 
     public void generateKey() {
-        mainKey = new BigInteger(keySize, new SecureRandom());
+        byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
+        new SecureRandom().nextBytes(keyBytes);
+        mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
     }
 
     public BigInteger getMainKey() {
@@ -77,12 +79,20 @@ public class AES {
     }
 
     public void addRoundKey(byte[] block, BigInteger key) {
-        // Konwersja klucza na tablicę bajtów
         byte[] keyBytes = key.toByteArray();
+        byte[] fixedKey = new byte[blockSize];
+
+        if (keyBytes.length > blockSize) {
+            // Jeśli klucz jest za długi, bierzemy ostatnie 16 bajtów
+            System.arraycopy(keyBytes, keyBytes.length - blockSize, fixedKey, 0, blockSize);
+        } else {
+            // Jeśli klucz jest za krótki, wypełniamy zerami od początku
+            System.arraycopy(keyBytes, 0, fixedKey, blockSize - keyBytes.length, keyBytes.length);
+        }
 
         // XORowanie bloku z kluczem
         for (int i = 0; i < blockSize; i++) {
-            block[i] ^= keyBytes[i];
+            block[i] ^= fixedKey[i];
         }
     }
 
@@ -100,6 +110,7 @@ public class AES {
             // TODO: Ostatnia runda
         }
 
+        // Roboczo zwracamy null
         return null;
     }
 }
