@@ -16,16 +16,31 @@ public class aesTest {
 
     @Test
     public void testGenerateKey() {
-        BigInteger key = aes.generateKey();
+        aes.generateKey();
+        BigInteger key = aes.getMainKey();
         System.out.println("\n Generated first key: " + key.toString(16));
     }
 
     @Test
     public void testReadFile() {
-        byte[] data = aes.readFile("src/main/resources/testFile.txt");
+        aes.readFile("src/main/resources/testFile.txt");
         System.out.println("\n Read data from file:");
-        for (byte b : data) {
+        for (byte b : aes.getData()) {
             System.out.print(b + " ");
+        }
+    }
+
+    @Test
+    public void testSplitIntoBlocks() {
+        aes.readFile("src/main/resources/testFile.txt");
+        byte [] data = aes.getData();
+        byte[][] blocks = aes.splitIntoBlocks(data);
+        System.out.println("\n Split data into blocks:");
+        for (byte[] block : blocks) {
+            for (byte b : block) {
+                System.out.print(b + " ");
+            }
+            System.out.println();
         }
     }
 

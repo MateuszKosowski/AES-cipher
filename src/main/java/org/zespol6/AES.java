@@ -9,6 +9,8 @@ public class AES {
 
     private final int amountOfRounds = 10;
     private final int keySize = 128;
+    private byte[] data;
+    private BigInteger mainKey;
 
     // Każdy bajt danych jest zastępowany innym bajtem zgodnie z tabelą SBOX. Konstrukcja tabeli gwarantuje nieliniowość zastępowania.
     private final int[][] SBOX = {
@@ -31,20 +33,47 @@ public class AES {
     };
 
     // Try-with-resources aby automatycznie zamknąć strumień
-    public byte[] readFile(String fileName) {
+    public void readFile(String fileName) {
         try (FileInputStream fis = new FileInputStream(fileName)) {
             // Odczytanie wszystkich bajtów z pliku
-            byte[] data = fis.readAllBytes();
-            return data;
+            data = fis.readAllBytes();
         } catch (IOException e) {
             e.printStackTrace();
-            return new byte[0];
         }
     }
 
-    public BigInteger generateKey() {
-        BigInteger key = new BigInteger(keySize, new SecureRandom());
-        return key;
+    public byte[] getData() {
+        return data;
     }
 
+    public void generateKey() {
+        mainKey = new BigInteger(keySize, new SecureRandom());
+    }
+
+    public BigInteger getMainKey() {
+        return mainKey;
+    }
+
+    public byte[][] splitIntoBlocks(byte[] data) {
+        // Macierz 4x4 bajtów
+        int blockSize = 16;
+        // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
+        int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
+
+        // Tablica bloków
+        byte[][] blocks = new byte[numBlocks][blockSize];
+
+        for (int i = 0; i < numBlocks; i++) {
+            // Indeks początkowy bloku
+            int start = i * blockSize;
+            // Długość bloku - jeśli ostatni blok, to długość może być mniejsza
+            int length = Math.min(blockSize, data.length - start);
+
+            // Kopiowanie danych do bloku
+            // Argumenty: źródło, początek, cel, początek_w_celu, długość
+            // Reszta pozostaje zerowa (Java inicjalizuje bajty na 0)
+            System.arraycopy(data, start, blocks[i], 0, length);
+        }
+        return blocks;
+    }
 }
