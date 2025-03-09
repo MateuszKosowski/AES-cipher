@@ -3,9 +3,10 @@ import org.zespol6.*;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 
-public class aesTest {
+public class AESTest {
 
     AES aes;
 
@@ -44,4 +45,22 @@ public class aesTest {
         }
     }
 
+    @Test
+    public void testAddRoundKey() {
+        aes.readFile("src/main/resources/testFile.txt");
+        byte [] data = aes.getData();
+        byte[][] blocks = aes.splitIntoBlocks(data);
+        aes.generateKey();
+        BigInteger key = aes.getMainKey();
+        System.out.println("\n addRoundkey: " + key.toString(16));
+        System.out.println("\n addRoundkey in bytes: " + Arrays.toString(key.toByteArray()));
+        System.out.println("\n XOR:");
+        for (byte[] block : blocks) {
+            aes.addRoundKey(block, key);
+            for (byte b : block) {
+                System.out.print(b + " ");
+            }
+            System.out.println();
+        }
+    }
 }

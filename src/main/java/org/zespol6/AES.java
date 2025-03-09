@@ -9,6 +9,7 @@ public class AES {
 
     private final int amountOfRounds = 10;
     private final int keySize = 128;
+    private final int blockSize = 16;
     private byte[] data;
     private BigInteger mainKey;
 
@@ -55,8 +56,6 @@ public class AES {
     }
 
     public byte[][] splitIntoBlocks(byte[] data) {
-        // Macierz 4x4 bajtów
-        int blockSize = 16;
         // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
         int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
 
@@ -75,5 +74,32 @@ public class AES {
             System.arraycopy(data, start, blocks[i], 0, length);
         }
         return blocks;
+    }
+
+    public void addRoundKey(byte[] block, BigInteger key) {
+        // Konwersja klucza na tablicę bajtów
+        byte[] keyBytes = key.toByteArray();
+
+        // XORowanie bloku z kluczem
+        for (int i = 0; i < blockSize; i++) {
+            block[i] ^= keyBytes[i];
+        }
+    }
+
+    public byte[] encrypt(byte[] data, BigInteger key) {
+
+        byte[][] blocks = splitIntoBlocks(data);
+
+        for (byte[] block : blocks) {
+
+            // Pierwsza runda
+            addRoundKey(block, key);
+
+            // TODO: Rundy 2-9
+
+            // TODO: Ostatnia runda
+        }
+
+        return null;
     }
 }
