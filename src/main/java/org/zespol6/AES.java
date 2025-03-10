@@ -46,16 +46,6 @@ public class AES {
         return (data != null) ? data : new byte[0];
     }
 
-    public void generateMainKey() {
-        byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
-        new SecureRandom().nextBytes(keyBytes);
-        mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
-    }
-
-    public BigInteger getMainKey() {
-        return mainKey;
-    }
-
     public byte[][] splitIntoBlocks(byte[] data) {
         // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
         int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
@@ -77,6 +67,16 @@ public class AES {
         return blocks;
     }
 
+    public void generateMainKey() {
+        byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
+        new SecureRandom().nextBytes(keyBytes);
+        mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
+    }
+
+    public BigInteger getMainKey() {
+        return mainKey;
+    }
+
     public byte[] toByteKey(BigInteger key) {
         byte[] keyBytes = key.toByteArray();
         byte[] fixedKey = new byte[blockSize];
@@ -89,15 +89,6 @@ public class AES {
             System.arraycopy(keyBytes, 0, fixedKey, blockSize - keyBytes.length, keyBytes.length);
         }
         return fixedKey;
-    }
-
-    public void addRoundKey(byte[] block, BigInteger key) {
-        byte[] fixedKey = toByteKey(key);
-
-        // XORowanie bloku z kluczem
-        for (int i = 0; i < blockSize; i++) {
-            block[i] ^= fixedKey[i];
-        }
     }
 
     public byte[] KeyExpansion(BigInteger mainKey) {
@@ -118,14 +109,30 @@ public class AES {
             System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
             // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
-            // TODO: Implementacja reszty
+            // TODO: Implementacja
 
+            // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
+            // TODO: Implementacja
+
+            // XORowanie z pierwszym bajtem z RCON
+            // TODO: Implementacja
+
+            // XORowanie z poprzednim podkluczem
+            // TODO: Implementacja
 
             currentPos += blockSize;
         }
 
-
         return null; // Roboczo zwracamy null
+    }
+
+    public void addRoundKey(byte[] block, BigInteger key) {
+        byte[] fixedKey = toByteKey(key);
+
+        // XORowanie bloku z kluczem
+        for (int i = 0; i < blockSize; i++) {
+            block[i] ^= fixedKey[i];
+        }
     }
 
     public byte[] encrypt(byte[] data, BigInteger key) {
