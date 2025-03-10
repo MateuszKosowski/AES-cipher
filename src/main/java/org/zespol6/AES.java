@@ -11,6 +11,7 @@ public class AES {
     private final int blockSize = 16;
     private byte[] data;
     private BigInteger mainKey;
+    private byte[] expandedKey;
 
     // Każdy bajt danych jest zastępowany innym bajtem zgodnie z tabelą SBOX. Konstrukcja tabeli gwarantuje nieliniowość zastępowania.
     private final int[][] SBOX = {
@@ -98,7 +99,7 @@ public class AES {
         return fixedKey;
     }
 
-    public byte[] KeyExpansion(BigInteger mainKey) {
+    public void KeyExpansion(BigInteger mainKey) {
         byte[] fixedMainKey = toByteKey(mainKey);
 
         // Buffor na wszystkie podklucze + klucz główny
@@ -156,7 +157,7 @@ public class AES {
             }
         }
 
-        return expandedKey;
+        this.expandedKey = expandedKey;
     }
 
     private byte getRconValue(int iteration) {
@@ -166,30 +167,46 @@ public class AES {
         return (byte) RCON[iteration - 1];
     }
 
-    public void addRoundKey(byte[] block, BigInteger key) {
-        byte[] fixedKey = toByteKey(key);
+    public void addRoundKey(byte[] block, int numberOfRound) {
 
         // XORowanie bloku z kluczem
         for (int i = 0; i < blockSize; i++) {
-            block[i] ^= fixedKey[i];
+            block[i] ^= expandedKey[numberOfRound * blockSize + i];
         }
     }
 
     public byte[] encrypt(byte[] data, BigInteger key) {
-
         byte[][] blocks = splitIntoBlocks(data);
+        KeyExpansion(key);
 
         for (byte[] block : blocks) {
 
             // Pierwsza runda
-            addRoundKey(block, key);
+            addRoundKey(block, 0);
 
-            // TODO: Rundy 2-9
+            // Rundy 1-9
 
-            // TODO: Ostatnia runda
+//TODO: Implementacja subBytes, shiftRows, mixColumns
+
+//            for (int round = 1; round < amountOfRounds; round++) {
+//                subBytes(block);
+//                shiftRows(block);
+//                mixColumns(block);
+//                addRoundKey(block, round);
+//            }
+
+//            // Ostatnia runda (bez mixColumns)
+//            subBytes(block);
+//            shiftRows(block);
+//            addRoundKey(block, amountOfRounds);
         }
 
-        // Roboczo zwracamy null
-        return null;
+        // Łączymy bloki z powrotem w jeden ciąg bajtów
+        byte[] encrypted = new byte[blocks.length * blockSize];
+        for (int i = 0; i < blocks.length; i++) {
+            System.arraycopy(blocks[i], 0, encrypted, i * blockSize, blockSize);
+        }
+
+        return encrypted;
     }
 }
