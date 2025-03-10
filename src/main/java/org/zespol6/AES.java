@@ -46,7 +46,7 @@ public class AES {
         return (data != null) ? data : new byte[0];
     }
 
-    public void generateKey() {
+    public void generateMainKey() {
         byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
@@ -77,7 +77,7 @@ public class AES {
         return blocks;
     }
 
-    public void addRoundKey(byte[] block, BigInteger key) {
+    public byte[] toByteKey(BigInteger key) {
         byte[] keyBytes = key.toByteArray();
         byte[] fixedKey = new byte[blockSize];
 
@@ -88,11 +88,44 @@ public class AES {
             // Jeśli klucz jest za krótki, wypełniamy zerami od początku
             System.arraycopy(keyBytes, 0, fixedKey, blockSize - keyBytes.length, keyBytes.length);
         }
+        return fixedKey;
+    }
+
+    public void addRoundKey(byte[] block, BigInteger key) {
+        byte[] fixedKey = toByteKey(key);
 
         // XORowanie bloku z kluczem
         for (int i = 0; i < blockSize; i++) {
             block[i] ^= fixedKey[i];
         }
+    }
+
+    public byte[] KeyExpansion(BigInteger mainKey) {
+        byte[] fixedMainKey = toByteKey(mainKey);
+
+        // Buffor na wszystkie podklucze + klucz główny
+        byte[] expandedKey = new byte[blockSize * (amountOfRounds + 1)];
+
+        // Kopiowanie klucza głównego na początek
+        System.arraycopy(fixedMainKey, 0, expandedKey, 0, blockSize);
+
+        int currentPos = blockSize;
+
+        // Generowanie kolejnych podkluczy
+        for (int i = 1; i <= amountOfRounds; i++) {
+
+            byte [] temp = new byte[4];
+            System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+
+            // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
+            // TODO: Implementacja reszty
+
+
+            currentPos += blockSize;
+        }
+
+
+        return null; // Roboczo zwracamy null
     }
 
     public byte[] encrypt(byte[] data, BigInteger key) {

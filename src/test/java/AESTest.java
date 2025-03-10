@@ -21,7 +21,7 @@ public class AESTest {
 
     @Test
     public void testGenerateKey() {
-        aes.generateKey();
+        aes.generateMainKey();
         BigInteger key = aes.getMainKey();
         System.out.println("-----------------------------------");
         System.out.println("Generated key (hex): " + key.toString(16).toUpperCase());
@@ -53,7 +53,7 @@ public class AESTest {
         aes.readFile("src/main/resources/testFile.txt");
         byte[] data = aes.getData();
         byte[][] blocks = aes.splitIntoBlocks(data);
-        aes.generateKey();
+        aes.generateMainKey();
         BigInteger key = aes.getMainKey();
         byte[] keyBytes = key.toByteArray();
 
