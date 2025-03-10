@@ -32,6 +32,13 @@ public class AES {
             {0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16}
     };
 
+    // Stała RCON - wartości używane w kluczach rundy
+    private final int[] RCON = {
+            0x01, 0x02, 0x04, 0x08,
+            0x10, 0x20, 0x40, 0x80,
+            0x1B, 0x36
+    };
+
     // Try-with-resources aby automatycznie zamknąć strumień
     public void readFile(String fileName) {
         try (FileInputStream fis = new FileInputStream(fileName)) {
@@ -124,10 +131,8 @@ public class AES {
                     temp[j] = (byte) SBOX[(temp[j] & 0xFF) >>> 4][temp[j] & 0x0F];
                 }
 
-                // XORowanie z pierwszym bajtem z RCON - czyli 2 podniesiona do potęgi przejscia pętli
-                for(int j = 0; j < 4; j++) {
-                    temp[j] ^= (byte) (0x01 << j);
-                }
+                // XORowanie pierwszego bajtu słowa z RCON
+                temp[0] ^=  getRconValue(i);
 
                 // XORowanie z poprzednim podkluczem
                 for(int j = 0; j < 4; j++) {
@@ -152,6 +157,13 @@ public class AES {
         }
 
         return expandedKey;
+    }
+
+    private byte getRconValue(int iteration) {
+        if (iteration >= RCON.length) {
+            throw new IllegalArgumentException("RCON iteration out of bounds");
+        }
+        return (byte) RCON[iteration - 1];
     }
 
     public void addRoundKey(byte[] block, BigInteger key) {
