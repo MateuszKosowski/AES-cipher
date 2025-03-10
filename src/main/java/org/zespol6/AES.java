@@ -108,22 +108,50 @@ public class AES {
             byte [] temp = new byte[4];
             System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
-            // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
-            // TODO: Implementacja
+            // Utworzenie 4 kolejnych bajtów klucza
 
-            // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
-            // TODO: Implementacja
+                // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
+                byte tempByte = temp[0];
+                for (int j = 0; j < 3; j++) {
+                    temp[j] = temp[j + 1];
+                }
+                temp[3] = tempByte;
 
-            // XORowanie z pierwszym bajtem z RCON
-            // TODO: Implementacja
+                // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
+                //Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
+                for(int j = 0; j < 4; j++) {
+                    // Przesunięcie bitowe o 4 w prawo, aby uzyskać pierwszą cyfrę
+                    temp[j] = (byte) SBOX[(temp[j] & 0xFF) >>> 4][temp[j] & 0x0F];
+                }
 
-            // XORowanie z poprzednim podkluczem
-            // TODO: Implementacja
+                // XORowanie z pierwszym bajtem z RCON - czyli 2 podniesiona do potęgi przejscia pętli
+                for(int j = 0; j < 4; j++) {
+                    temp[j] ^= (byte) (0x01 << j);
+                }
 
-            currentPos += blockSize;
+                // XORowanie z poprzednim podkluczem
+                for(int j = 0; j < 4; j++) {
+                    temp[j] ^= expandedKey[currentPos - blockSize + j];
+                }
+
+            System.arraycopy(temp, 0, expandedKey, currentPos, 4);
+            currentPos += 4;
+
+            // Utworzenie kolejnych 12 bajtów klucza
+            for(int j = 0; j < 3; j++) {
+
+                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+
+                for(int k = 0; k < 4; k++) {
+                    temp[k] ^= expandedKey[currentPos - blockSize + k];
+                }
+
+                System.arraycopy(temp, 0, expandedKey, currentPos, 4);
+                currentPos += 4;
+            }
         }
 
-        return null; // Roboczo zwracamy null
+        return expandedKey;
     }
 
     public void addRoundKey(byte[] block, BigInteger key) {
