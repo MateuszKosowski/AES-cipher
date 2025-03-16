@@ -76,7 +76,7 @@ public class AES {
     }
 
     public void generateMainKey() {
-        byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
+        byte[] keyBytes = new byte[128]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
     }
@@ -99,7 +99,7 @@ public class AES {
         return fixedKey;
     }
 
-    public void KeyExpansion(BigInteger mainKey) {
+    public void keyExpansion(BigInteger mainKey) {
         byte[] fixedMainKey = toByteKey(mainKey);
 
         // Buffor na wszystkie podklucze + klucz główny
@@ -126,11 +126,7 @@ public class AES {
                 temp[3] = tempByte;
 
                 // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
-                //Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
-                for(int j = 0; j < 4; j++) {
-                    // Przesunięcie bitowe o 4 w prawo, aby uzyskać pierwszą cyfrę
-                    temp[j] = (byte) SBOX[(temp[j] & 0xFF) >>> 4][temp[j] & 0x0F];
-                }
+                subBytes(temp, 4);
 
                 // XORowanie pierwszego bajtu słowa z RCON
                 temp[0] ^=  getRconValue(i);
@@ -146,7 +142,8 @@ public class AES {
             // Utworzenie kolejnych 12 bajtów klucza
             for(int j = 0; j < 3; j++) {
 
-                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+                // nie wiem czy to jest potrzebne
+//                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
                 for(int k = 0; k < 4; k++) {
                     temp[k] ^= expandedKey[currentPos - blockSize + k];
@@ -175,30 +172,35 @@ public class AES {
         }
     }
 
+    public void subBytes(byte[] block, int size) {
+        for (int i = 0; i < size; i++) {
+            // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
+            block[i] = (byte) SBOX[(block[i] & 0xFF) >>> 4][block[i] & 0x0F];
+        }
+    }
+
     public byte[] encrypt(byte[] data, BigInteger key) {
         byte[][] blocks = splitIntoBlocks(data);
-        KeyExpansion(key);
+        keyExpansion(key);
 
         for (byte[] block : blocks) {
 
-            // Pierwsza runda
-            addRoundKey(block, 0);
+            // Pierwsza runda - inicjująca
+            addRoundKey(block, 1);
 
-            // Rundy 1-9
+            // Rundy 2-9
 
-//TODO: Implementacja subBytes, shiftRows, mixColumns
+            for (int round = 2; round < amountOfRounds; round++) {
+                subBytes(block, blockSize);
+                shiftRows(block);
+                mixColumns(block);
+                addRoundKey(block, round);
+            }
 
-//            for (int round = 1; round < amountOfRounds; round++) {
-//                subBytes(block);
-//                shiftRows(block);
-//                mixColumns(block);
-//                addRoundKey(block, round);
-//            }
-
-//            // Ostatnia runda (bez mixColumns)
-//            subBytes(block);
-//            shiftRows(block);
-//            addRoundKey(block, amountOfRounds);
+            // Ostatnia runda (bez mixColumns)
+            subBytes(block, blockSize);
+            shiftRows(block);
+            addRoundKey(block, amountOfRounds);
         }
 
         // Łączymy bloki z powrotem w jeden ciąg bajtów
@@ -208,5 +210,35 @@ public class AES {
         }
 
         return encrypted;
+    }
+
+    private void shiftRows(byte[] block) {
+        for (int i = 1; i < 4; i++) {
+            byte [] row = new byte[4];
+            for (int j = 0; j < 4; j++) {
+                row[j] = block[i + j * 4];
+            }
+            if (i == 1) {
+                byte tempByte = row[0];
+                for (int j = 0; j < 3; j++) {
+                    row[j] = row[j + 1];
+                }
+                row[3] = tempByte;
+            } else if (i == 2){
+                byte tempByte = row[0];
+                byte tempByte1 = row[1];
+                for (int j = 0; j < 2; j++) {
+                    row[j] = row[j + 1];
+                }
+                row[2] = tempByte;
+                row[3] = tempByte1;
+            } else {
+                byte tempByte = row[3];
+                for (int j = 3; j > 0; j--) {
+                    row[j] = row[j - 1];
+                }
+                row[0] = tempByte;
+            }
+        }
     }
 }
