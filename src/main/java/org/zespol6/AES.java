@@ -84,13 +84,17 @@ public class AES {
     }
 
     public void generateMainKey() {
-        byte[] keyBytes = new byte[128]; // 128 bitów = 16 bajtów
+        byte[] keyBytes = new byte[16]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
     }
 
     public BigInteger getMainKey() {
         return mainKey;
+    }
+
+    public byte[] getExpandedKey() {
+        return expandedKey;
     }
 
     public byte[] toByteKey(BigInteger key) {
@@ -151,7 +155,7 @@ public class AES {
             for(int j = 0; j < 3; j++) {
 
                 // nie wiem czy to jest potrzebne
-//                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
                 for(int k = 0; k < 4; k++) {
                     temp[k] ^= expandedKey[currentPos - blockSize + k];
@@ -166,7 +170,7 @@ public class AES {
     }
 
     private byte getRconValue(int iteration) {
-        if (iteration >= RCON.length) {
+        if (iteration > RCON.length) {
             throw new IllegalArgumentException("RCON iteration out of bounds");
         }
         return (byte) RCON[iteration - 1];
@@ -193,12 +197,12 @@ public class AES {
 
         for (byte[] block : blocks) {
 
-            // Pierwsza runda
-            addRoundKey(block, 1);
+            // Runda inicjalizacyjna
+            addRoundKey(block, 0);
 
-            // Rundy 2-9
+            // Rundy 1-9
 
-            for (int round = 2; round < amountOfRounds; round++) {
+            for (int round = 1; round < amountOfRounds; round++) {
                 subBytes(block, blockSize);
                 shiftRows(block);
                 mixColumns(block);
