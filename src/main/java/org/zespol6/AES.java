@@ -40,6 +40,14 @@ public class AES {
             0x1B, 0x36
     };
 
+    // Stała MCOL - macierz mnożenia w mixColumns
+    private final int[] MCOL = {
+            2, 3, 1, 1,
+            1, 2, 3, 1,
+            1, 1, 2, 3,
+            3, 1, 1, 2
+    };
+
     // Try-with-resources aby automatycznie zamknąć strumień
     public void readFile(String fileName) {
         try (FileInputStream fis = new FileInputStream(fileName)) {
@@ -185,7 +193,7 @@ public class AES {
 
         for (byte[] block : blocks) {
 
-            // Pierwsza runda - inicjująca
+            // Pierwsza runda
             addRoundKey(block, 1);
 
             // Rundy 2-9
@@ -212,32 +220,77 @@ public class AES {
         return encrypted;
     }
 
-    private void shiftRows(byte[] block) {
+    private void mixColumns(byte[] block) {
+        for (int i = 0; i < 4; i++) {
+            byte[] column = new byte[4];
+            byte[] newColumn = new byte[4];
+
+            // Kopiowanie kolumny do tymczasowej tablicy
+            System.arraycopy(block, i * 4, column, 0, 4);
+
+            // Przeprowadzenie mnożenia na kolumnie
+            for (int j = 0; j < 4; j++) {
+                newColumn[j] = 0;
+                for (int k = 0; k < 4; k++){
+                    byte value = switch (MCOL[j * 4 + k]) {
+                        case 1 -> gfMul1(column[k]);
+                        case 2 -> gfMul2(column[k]);
+                        case 3 -> gfMul3(column[k]);
+                        default -> throw new IllegalArgumentException("Invalid MCOL value");
+                    };
+                    // Przypisanie wyniku do pozycji w nowej kolumnie
+                    newColumn[j] ^= value;
+                }
+            }
+            System.arraycopy(newColumn, 0, block, i * 4, 4);
+        }
+    }
+
+    // Mnożenie przez 1 w GF(2^8)
+    private byte gfMul1(byte b) {
+        return b; // Mnożenie przez 1 to wartość bez zmian
+    }
+
+    // Mnożenie przez 2 w GF(2^8)
+    private byte gfMul2(byte b) {
+        // Usunięcie znaku z bajtu
+        int bInt = b & 0xFF;
+        // Przesunięcie w lewo i XOR z 0x1B jeśli najwyższy bit jest 1
+        if ((bInt & 0x80) == 0) {
+            return (byte)(bInt << 1);
+        } else {
+            return (byte)((bInt << 1) ^ 0x1B);
+        }
+    }
+
+    // Mnożenie przez 3 w GF(2^8)
+    private byte gfMul3(byte b) {
+        // Mnożenie przez 3 to mnożenie przez 2 i XOR z oryginalną wartością
+        return (byte)(gfMul2(b) ^ (b & 0xFF));
+    }
+
+    private void shiftRows(byte[] block){
         for (int i = 1; i < 4; i++) {
-            byte [] row = new byte[4];
+            // tymaczasowy wiersz
+            byte[] row = new byte[4];
+
+            // kopiowanie wiersza
             for (int j = 0; j < 4; j++) {
                 row[j] = block[i + j * 4];
             }
+
+            // przesunięcie wiersza
             if (i == 1) {
-                byte tempByte = row[0];
-                for (int j = 0; j < 3; j++) {
-                    row[j] = row[j + 1];
-                }
-                row[3] = tempByte;
-            } else if (i == 2){
-                byte tempByte = row[0];
-                byte tempByte1 = row[1];
-                for (int j = 0; j < 2; j++) {
-                    row[j] = row[j + 1];
-                }
-                row[2] = tempByte;
-                row[3] = tempByte1;
+                row = new byte[]{row[1], row[2], row[3], row[0]};
+            } else if (i == 2) {
+                row = new byte[]{row[2], row[3], row[0], row[1]};
             } else {
-                byte tempByte = row[3];
-                for (int j = 3; j > 0; j--) {
-                    row[j] = row[j - 1];
-                }
-                row[0] = tempByte;
+                row = new byte[]{row[3], row[0], row[1], row[2]};
+            }
+
+            // kopiowanie wiersza z powrotem
+            for (int j = 0; j < 4; j++) {
+                block[i + j * 4] = row[j];
             }
         }
     }
