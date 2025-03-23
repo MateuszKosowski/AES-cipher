@@ -61,6 +61,8 @@ public class AESTest {
         System.out.println("Read data from file (hex): " + bytesToHex(aes.getData()));
         byte[] expectedData= aes.encrypt(aes.getData(), aes.getMainKey());
         System.out.println("Encrypted data: " + bytesToHex(expectedData));
+        byte[] decryptedData = aes.decrypt(expectedData, aes.getMainKey());
+        System.out.println("Decrypted data: " + aes.bytesToString(decryptedData));
     }
 
 }
