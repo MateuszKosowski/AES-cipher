@@ -77,8 +77,7 @@ public class AES {
             11, 13, 9, 14
     };
 
-
-    // Try-with-resources aby automatycznie zamknąć strumień
+    // readFile
     public void readFile(String fileName) {
         try (FileInputStream fis = new FileInputStream(fileName)) {
             // Odczytanie wszystkich bajtów z pliku
@@ -88,6 +87,12 @@ public class AES {
         }
     }
 
+    // getData
+    public byte[] getData() {
+        return (data != null) ? data : new byte[0];
+    }
+
+    // bytesToString
     public String bytesToString(byte[] data) {
         try {
             return new String(data, "UTF-8");
@@ -97,45 +102,24 @@ public class AES {
         }
     }
 
-    public byte[] getData() {
-        return (data != null) ? data : new byte[0];
-    }
-
-    public byte[][] splitIntoBlocks(byte[] data) {
-        // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
-        int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
-
-        // Tablica bloków
-        byte[][] blocks = new byte[numBlocks][blockSize];
-
-        for (int i = 0; i < numBlocks; i++) {
-            // Indeks początkowy bloku
-            int start = i * blockSize;
-            // Długość bloku - jeśli ostatni blok, to długość może być mniejsza
-            int length = Math.min(blockSize, data.length - start);
-
-            // Kopiowanie danych do bloku
-            // Argumenty: źródło, początek, cel, początek_w_celu, długość
-            // Reszta pozostaje zerowa (Java inicjalizuje bajty na 0)
-            System.arraycopy(data, start, blocks[i], 0, length);
-        }
-        return blocks;
-    }
-
+    // generateMainKey
     public void generateMainKey() {
         byte[] keyBytes = new byte[keySize]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
     }
 
+    // getMainKey
     public BigInteger getMainKey() {
         return mainKey;
     }
 
+    // getExpandedKey
     public byte[] getExpandedKey() {
         return expandedKey;
     }
 
+    // toByteKey
     public byte[] toByteKey(BigInteger key) {
         byte[] keyBytes = key.toByteArray();
         byte[] fixedKey = new byte[blockSize];
@@ -150,6 +134,7 @@ public class AES {
         return fixedKey;
     }
 
+    // keyExpansion
     public void keyExpansion(BigInteger mainKey) {
         byte[] fixedMainKey = toByteKey(mainKey);
 
@@ -208,6 +193,97 @@ public class AES {
         this.expandedKey = expandedKey;
     }
 
+    // encrypt
+    public byte[] encrypt(byte[] data, BigInteger key) {
+        byte[][] blocks = splitIntoBlocks(data);
+        keyExpansion(key);
+
+        for (byte[] block : blocks) {
+
+            // Runda inicjalizacyjna
+            addRoundKey(block, 0);
+
+            // Rundy 1-9
+
+            for (int round = 1; round < amountOfRounds; round++) {
+                subBytes(block, blockSize);
+                shiftRows(block, true);
+                mixColumns(block, true);
+                addRoundKey(block, round);
+            }
+
+            // Ostatnia runda (bez mixColumns)
+            subBytes(block, blockSize);
+            shiftRows(block, true);
+            addRoundKey(block, amountOfRounds);
+        }
+
+        // Łączymy bloki z powrotem w jeden ciąg bajtów
+        byte[] encrypted = new byte[blocks.length * blockSize];
+        for (int i = 0; i < blocks.length; i++) {
+            System.arraycopy(blocks[i], 0, encrypted, i * blockSize, blockSize);
+        }
+
+        return encrypted;
+    }
+
+    // decrypt
+    public byte[] decrypt(byte[] encrypted, BigInteger key) {
+        byte[][] blocks = splitIntoBlocks(encrypted);
+        keyExpansion(key);
+
+        for (byte[] block : blocks) {
+
+            // Runda inicializacyjna odszyfrowanie
+            addRoundKey(block, amountOfRounds);
+
+            // Rundy 1-9 odszyfrowanie
+            for(int round = amountOfRounds - 1; round > 0; round--) {
+                shiftRows(block, false);
+                reverseSubBytes(block, blockSize);
+                addRoundKey(block, round);
+                mixColumns(block, false);
+            }
+
+            // Ostatnia runda odszyfrowanie
+            shiftRows(block, false);
+            reverseSubBytes(block, blockSize);
+            addRoundKey(block, 0);
+
+        }
+
+        // Łączymy bloki z powrotem w jeden ciąg bajtów
+        byte[] decrypted = new byte[blocks.length * blockSize];
+        for (int i = 0; i < blocks.length; i++) {
+            System.arraycopy(blocks[i], 0, decrypted, i * blockSize, blockSize);
+        }
+
+        return decrypted;
+    }
+
+    // splitIntoBlocks
+    public byte[][] splitIntoBlocks(byte[] data) {
+        // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
+        int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
+
+        // Tablica bloków
+        byte[][] blocks = new byte[numBlocks][blockSize];
+
+        for (int i = 0; i < numBlocks; i++) {
+            // Indeks początkowy bloku
+            int start = i * blockSize;
+            // Długość bloku - jeśli ostatni blok, to długość może być mniejsza
+            int length = Math.min(blockSize, data.length - start);
+
+            // Kopiowanie danych do bloku
+            // Argumenty: źródło, początek, cel, początek_w_celu, długość
+            // Reszta pozostaje zerowa (Java inicjalizuje bajty na 0)
+            System.arraycopy(data, start, blocks[i], 0, length);
+        }
+        return blocks;
+    }
+
+    // getRconValue
     private byte getRconValue(int iteration) {
         if (iteration > RCON.length) {
             throw new IllegalArgumentException("RCON iteration out of bounds");
@@ -215,6 +291,7 @@ public class AES {
         return (byte) RCON[iteration - 1];
     }
 
+    // addRoundKey
     public void addRoundKey(byte[] block, int numberOfRound) {
 
         // XORowanie bloku z kluczem
@@ -223,6 +300,7 @@ public class AES {
         }
     }
 
+    // subBytes
     public void subBytes(byte[] block, int size) {
         for (int i = 0; i < size; i++) {
             // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
@@ -230,6 +308,51 @@ public class AES {
         }
     }
 
+    // reverseSubBytes
+    private void reverseSubBytes(byte[] block, int size) {
+        for (int i = 0; i < size; i++) {
+            // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
+            block[i] = (byte) reverseSBOX[(block[i] & 0xFF) >>> 4][block[i] & 0x0F];
+        }
+    }
+
+    // shiftRows
+    private void shiftRows(byte[] block, boolean direction){
+        for (int i = 1; i < 4; i++) {
+            // tymaczasowy wiersz
+            byte[] row = new byte[4];
+
+            // kopiowanie wiersza
+            for (int j = 0; j < 4; j++) {
+                row[j] = block[i + j * 4];
+            }
+
+            if (direction) {
+                if (i == 1) {
+                    row = new byte[]{row[1], row[2], row[3], row[0]};
+                } else if (i == 2) {
+                    row = new byte[]{row[2], row[3], row[0], row[1]};
+                } else {
+                    row = new byte[]{row[3], row[0], row[1], row[2]};
+                }
+            } else {
+                if (i == 1) {
+                    row = new byte[]{row[3], row[0], row[1], row[2]};
+                } else if (i == 2) {
+                    row = new byte[]{row[2], row[3], row[0], row[1]};
+                } else {
+                    row = new byte[]{row[1], row[2], row[3], row[0]};
+                }
+            }
+
+            // kopiowanie wiersza z powrotem
+            for (int j = 0; j < 4; j++) {
+                block[i + j * 4] = row[j];
+            }
+        }
+    }
+
+    // mixColumns
     private void mixColumns(byte[] block, boolean option) {
         for (int i = 0; i < 4; i++) {
             byte[] column = new byte[4];
@@ -268,12 +391,12 @@ public class AES {
         }
     }
 
-    // Mnożenie przez 1 w GF(2^8)
+    // gfMul1
     private byte gfMul1(byte b) {
         return b; // Mnożenie przez 1 to wartość bez zmian
     }
 
-    // Mnożenie przez 2 w GF(2^8)
+    // gfMul2
     private byte gfMul2(byte b) {
         // Usunięcie znaku z bajtu
         int bInt = b & 0xFF;
@@ -285,151 +408,43 @@ public class AES {
         }
     }
 
-    // Mnożenie przez 3 w GF(2^8)
+    // gfMul3
     private byte gfMul3(byte b) {
         // Mnożenie przez 3 to mnożenie przez 2 i XOR z oryginalną wartością
         return (byte)(gfMul2(b) ^ (b & 0xFF));
     }
 
-    // Mnożenie przez 4 w GF(2^8)
+    // gfMul4
     private byte gfMul4(byte b) {
         return gfMul2(gfMul2(b));
     }
 
-    // Mnożenie przez 8 w GF(2^8)
+    // gfMul8
     private byte gfMul8(byte b) {
         return gfMul2(gfMul4(b));
     }
 
-    // Mnożenie przez 9 w GF(2^8)
+    // gfMul9
     private byte gfMul9(byte b) {
         // 9 = 8 + 1, więc mnożymy przez 8 i dodajemy oryginalną wartość
         return (byte)(gfMul8(b) ^ b);
     }
 
-    // Mnożenie przez 11 w GF(2^8)
+    // gfMul11
     private byte gfMul11(byte b) {
         // 11 = 8 + 2 + 1
         return (byte)(gfMul8(b) ^ gfMul2(b) ^ b);
     }
 
-    // Mnożenie przez 13 w GF(2^8)
+    // gfMul13
     private byte gfMul13(byte b) {
         // 13 = 8 + 4 + 1
         return (byte)(gfMul8(b) ^ gfMul4(b) ^ b);
     }
 
-    // Mnożenie przez 14 w GF(2^8)
+    // gfMul14
     private byte gfMul14(byte b) {
         // 14 = 8 + 4 + 2
         return (byte)(gfMul8(b) ^ gfMul4(b) ^ gfMul2(b));
-    }
-
-    private void shiftRows(byte[] block, boolean direction){
-        for (int i = 1; i < 4; i++) {
-            // tymaczasowy wiersz
-            byte[] row = new byte[4];
-
-            // kopiowanie wiersza
-            for (int j = 0; j < 4; j++) {
-                row[j] = block[i + j * 4];
-            }
-
-            if (direction) {
-                if (i == 1) {
-                    row = new byte[]{row[1], row[2], row[3], row[0]};
-                } else if (i == 2) {
-                    row = new byte[]{row[2], row[3], row[0], row[1]};
-                } else {
-                    row = new byte[]{row[3], row[0], row[1], row[2]};
-                }
-            } else {
-                if (i == 1) {
-                    row = new byte[]{row[3], row[0], row[1], row[2]};
-                } else if (i == 2) {
-                    row = new byte[]{row[2], row[3], row[0], row[1]};
-                } else {
-                    row = new byte[]{row[1], row[2], row[3], row[0]};
-                }
-            }
-
-            // kopiowanie wiersza z powrotem
-            for (int j = 0; j < 4; j++) {
-                block[i + j * 4] = row[j];
-            }
-        }
-    }
-
-    private void reverseSubBytes(byte[] block, int size) {
-        for (int i = 0; i < size; i++) {
-            // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
-            block[i] = (byte) reverseSBOX[(block[i] & 0xFF) >>> 4][block[i] & 0x0F];
-        }
-    }
-
-    public byte[] encrypt(byte[] data, BigInteger key) {
-        byte[][] blocks = splitIntoBlocks(data);
-        keyExpansion(key);
-
-        for (byte[] block : blocks) {
-
-            // Runda inicjalizacyjna
-            addRoundKey(block, 0);
-
-            // Rundy 1-9
-
-            for (int round = 1; round < amountOfRounds; round++) {
-                subBytes(block, blockSize);
-                shiftRows(block, true);
-                mixColumns(block, true);
-                addRoundKey(block, round);
-            }
-
-            // Ostatnia runda (bez mixColumns)
-            subBytes(block, blockSize);
-            shiftRows(block, true);
-            addRoundKey(block, amountOfRounds);
-        }
-
-        // Łączymy bloki z powrotem w jeden ciąg bajtów
-        byte[] encrypted = new byte[blocks.length * blockSize];
-        for (int i = 0; i < blocks.length; i++) {
-            System.arraycopy(blocks[i], 0, encrypted, i * blockSize, blockSize);
-        }
-
-        return encrypted;
-    }
-
-    public byte[] decrypt(byte[] encrypted, BigInteger key) {
-        byte[][] blocks = splitIntoBlocks(encrypted);
-        keyExpansion(key);
-
-        for (byte[] block : blocks) {
-
-            // Runda inicializacyjna odszyfrowanie
-            addRoundKey(block, amountOfRounds);
-
-            // Rundy 1-9 odszyfrowanie
-            for(int round = amountOfRounds - 1; round > 0; round--) {
-                shiftRows(block, false);
-                reverseSubBytes(block, blockSize);
-                addRoundKey(block, round);
-                mixColumns(block, false);
-            }
-
-            // Ostatnia runda odszyfrowanie
-            shiftRows(block, false);
-            reverseSubBytes(block, blockSize);
-            addRoundKey(block, 0);
-
-        }
-
-        // Łączymy bloki z powrotem w jeden ciąg bajtów
-        byte[] decrypted = new byte[blocks.length * blockSize];
-        for (int i = 0; i < blocks.length; i++) {
-            System.arraycopy(blocks[i], 0, decrypted, i * blockSize, blockSize);
-        }
-
-        return decrypted;
     }
 }
