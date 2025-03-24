@@ -88,6 +88,11 @@ public class AES {
         }
     }
 
+    // readFromText
+    public void readFromText(String text) {
+        data = text.getBytes(StandardCharsets.UTF_8);
+    }
+
     // getData
     public byte[] getData() {
         return (data != null) ? data : new byte[0];
