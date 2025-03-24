@@ -1,6 +1,6 @@
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.zespol6.AES;
+import org.zespol6.aes.AES;
 
 public class AESTest {
     AES aes;

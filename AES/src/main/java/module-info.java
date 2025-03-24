@@ -1,3 +1,3 @@
 module AES {
-    exports org.zespol6;
+    exports org.zespol6.aes;
 }

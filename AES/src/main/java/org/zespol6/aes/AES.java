@@ -1,4 +1,4 @@
-package org.zespol6;
+package org.zespol6.aes;
 
 import java.io.FileInputStream;
 import java.io.IOException;

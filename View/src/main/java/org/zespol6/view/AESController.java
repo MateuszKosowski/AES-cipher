@@ -3,7 +3,7 @@ package org.zespol6.view;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
-import org.zespol6.AES;
+import org.zespol6.aes.AES;
 
 public class AESController {
 
