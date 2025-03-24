@@ -1,15 +1,20 @@
 package org.zespol6.view;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
-import org.zespol6.*;
+import org.zespol6.AES;
 
 public class AESController {
 
     @FXML
     Button keyGenButton;
+
+    @FXML
+    TextField dataField;
+
+    @FXML
+    TextField encryptedDataField;
 
     @FXML
     TextField keyField;
@@ -24,6 +29,9 @@ public class AESController {
             aes.generateMainKey();
             keyField.setText(aes.getMainKey().toString(16).toUpperCase());
         });
+
+//        dataField
+
     }
 
 }

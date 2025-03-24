@@ -1,7 +1,6 @@
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.zespol6.*;
-import java.math.BigInteger;
+import org.zespol6.AES;
 
 public class AESTest {
     AES aes;
