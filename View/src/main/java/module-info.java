@@ -6,4 +6,5 @@ module org.zespol6.view {
 
     opens org.zespol6.view to javafx.fxml;
     exports org.zespol6.view;
+
 }
