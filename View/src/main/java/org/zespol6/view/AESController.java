@@ -17,7 +17,7 @@ public class AESController {
     @FXML
     public void initialize() {
 
-        //AES aes = new AES();
+        AES aes = new AES();
 
 
         keyGenButton.setOnAction(e -> {
