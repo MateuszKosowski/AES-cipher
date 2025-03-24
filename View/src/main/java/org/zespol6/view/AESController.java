@@ -21,7 +21,8 @@ public class AESController {
 
 
         keyGenButton.setOnAction(e -> {
-            keyField.setText("Key generated");
+            aes.generateMainKey();
+            keyField.setText(aes.getMainKey().toString(16).toUpperCase());
         });
     }
 
