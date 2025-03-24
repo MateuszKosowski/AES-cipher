@@ -31,22 +31,42 @@
     </VBox>
 
     <HBox spacing="20.0">
-        <VBox HBox.hgrow="ALWAYS">
+        <VBox HBox.hgrow="ALWAYS" spacing="10.0">
             <children>
-                <TextField fx:id="dataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane">
+                <Button fx:id="encryptButton" text="Zaszyfruj">
                     <font>
                         <Font size="14.0" />
                     </font>
-                </TextField>
+                </Button>
+                <TextArea fx:id="dataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </TextArea>
+                <Button fx:id="copyDecryptedDataButton" text="Kopiuj">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Button>
             </children>
         </VBox>
-        <VBox HBox.hgrow="ALWAYS">
+        <VBox HBox.hgrow="ALWAYS" spacing="10.0">
             <children>
-                <TextField fx:id="encryptedDataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane">
+                <Button fx:id="decryptButton" text="Odszyfruj">
                     <font>
                         <Font size="14.0" />
                     </font>
-                </TextField>
+                </Button>
+                <TextArea fx:id="encryptedDataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </TextArea>
+                <Button fx:id="copyEncryptedDataButton" text="Kopiuj">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Button>
             </children>
         </VBox>
     </HBox>

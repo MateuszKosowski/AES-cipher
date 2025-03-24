@@ -89,14 +89,10 @@ public class AES {
     }
 
     // readFromText
-    public void readFromText(String text) {
+    public void readStringToBytes(String text) {
         data = text.getBytes(StandardCharsets.UTF_8);
     }
 
-    // getData
-    public byte[] getData() {
-        return (data != null) ? data : new byte[0];
-    }
 
     // bytesToString
     public String bytesToString(byte[] data) {
@@ -106,6 +102,29 @@ public class AES {
             e.printStackTrace();
             return new String(data); // Użycie domyślnego kodowania jako ostateczność
         }
+    }
+
+    public String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
+    }
+
+    public byte[] hexToBytes(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                    + Character.digit(hex.charAt(i+1), 16));
+        }
+        return data;
+    }
+
+    // getData
+    public byte[] getData() {
+        return (data != null) ? data : new byte[0];
     }
 
     // generateMainKey
@@ -118,6 +137,10 @@ public class AES {
     // getMainKey
     public BigInteger getMainKey() {
         return mainKey;
+    }
+
+    public void setMainKey(BigInteger mainKey) {
+        this.mainKey = mainKey;
     }
 
     // getExpandedKey
