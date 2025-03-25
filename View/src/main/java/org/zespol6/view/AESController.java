@@ -72,43 +72,11 @@ public class AESController {
         });
 
         loadEncryptedButton.setOnAction(e -> {
-            // Otworzenie okienka dialogowego do wyboru pliku
-            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-            fileChooser.setTitle("Wybierz plik z zaszyfrowanymi danymi");
-            fileChooser.getExtensionFilters().addAll(
-                    new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
-                    new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
-            );
-            File selectedFile = fileChooser.showOpenDialog(null);
-
-            if (selectedFile != null) {
-                try {
-                    String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
-                    encryptedDataField.setText(contentLoad);
-                } catch (IOException ex) {
-                    encryptedDataField.setText("Error: " + ex.getMessage());
-                }
-            }
+            loadButtonAction(encryptedDataField, true);
         });
 
         loadDecryptedButton.setOnAction(e -> {
-            // Otworzenie okienka dialogowego do wyboru pliku
-            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-            fileChooser.setTitle("Wybierz plik z odszyfrowanymi danymi");
-            fileChooser.getExtensionFilters().addAll(
-                    new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
-                    new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
-            );
-            File selectedFile = fileChooser.showOpenDialog(null);
-
-            if (selectedFile != null) {
-                try {
-                    String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
-                    dataField.setText(contentLoad);
-                } catch (IOException ex) {
-                    dataField.setText("Error: " + ex.getMessage());
-                }
-            }
+            loadButtonAction(dataField, false);
         });
 
         decryptButton.setOnAction(e -> {
@@ -139,7 +107,43 @@ public class AESController {
             clipboard.setContent(content);
         });
 
+        saveEncryptedButton.setOnAction(e -> {
+            // Otworzenie okienka dialogowego do wyboru pliku
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Zapisz zaszyfrowane dane");
+            fileChooser.getExtensionFilters().addAll(
+                    new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+            );
+            File selectedFile = fileChooser.showSaveDialog(null);
 
+            if (selectedFile != null) {
+                try {
+                    java.nio.file.Files.write(selectedFile.toPath(), encryptedDataField.getText().getBytes());
+                } catch (IOException ex) {
+                    encryptedDataField.setText("Error: " + ex.getMessage());
+                }
+            }
+        });
+    }
+
+    private void loadButtonAction(TextArea textArea, boolean isEncrypted) {
+        // Otworzenie okienka dialogowego do wyboru pliku
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle(isEncrypted ? "Wybierz plik z zaszyfrowanymi danymi" : "Wybierz plik z odszyfrowanymi danymi");
+        fileChooser.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
+                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+        );
+        File selectedFile = fileChooser.showOpenDialog(null);
+
+        if (selectedFile != null) {
+            try {
+                String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
+                textArea.setText(contentLoad);
+            } catch (IOException ex) {
+                textArea.setText("Error: " + ex.getMessage());
+            }
+        }
     }
 
 }
