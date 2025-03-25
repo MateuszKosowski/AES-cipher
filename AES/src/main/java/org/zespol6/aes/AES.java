@@ -1,8 +1,5 @@
 package org.zespol6.aes;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -11,7 +8,6 @@ public class AES {
 
     private int amountOfRounds = 10;
     private final int blockSize = 16;
-    private int keySize = 16;
     private byte[] data;
     private BigInteger mainKey;
     private byte[] expandedKey;
@@ -78,16 +74,6 @@ public class AES {
             11, 13, 9, 14
     };
 
-    // readFile
-    public void readFile(String fileName) {
-        try (FileInputStream fis = new FileInputStream(fileName)) {
-            // Odczytanie wszystkich bajtów z pliku
-            data = fis.readAllBytes();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     // readFromText
     public void readStringToBytes(String text) {
         data = text.getBytes(StandardCharsets.UTF_8);
@@ -96,12 +82,7 @@ public class AES {
 
     // bytesToString
     public String bytesToString(byte[] data) {
-        try {
-            return new String(data, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return new String(data); // Użycie domyślnego kodowania jako ostateczność
-        }
+        return new String(data, StandardCharsets.UTF_8);
     }
 
     public String bytesToHex(byte[] bytes) {
@@ -113,6 +94,9 @@ public class AES {
     }
 
     public byte[] hexToBytes(String hex) {
+        if (hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Hex string must have an even length");
+        }
         int len = hex.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -129,7 +113,7 @@ public class AES {
 
     // generateMainKey
     public void generateMainKey(int size) {
-        keySize = size / 8; // Rozmiar klucza w bajtach
+        int keySize = size / 8; // Rozmiar klucza w bajtach
         byte[] keyBytes = new byte[keySize]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
@@ -316,14 +300,14 @@ public class AES {
             // Rundy 1-9 odszyfrowanie
             for(int round = amountOfRounds - 1; round > 0; round--) {
                 shiftRows(block, false);
-                reverseSubBytes(block, blockSize);
+                reverseSubBytes(block);
                 addRoundKey(block, round);
                 mixColumns(block, false);
             }
 
             // Ostatnia runda odszyfrowanie
             shiftRows(block, false);
-            reverseSubBytes(block, blockSize);
+            reverseSubBytes(block);
             addRoundKey(block, 0);
 
         }
@@ -385,8 +369,8 @@ public class AES {
     }
 
     // reverseSubBytes
-    private void reverseSubBytes(byte[] block, int size) {
-        for (int i = 0; i < size; i++) {
+    private void reverseSubBytes(byte[] block) {
+        for (int i = 0; i < blockSize; i++) {
             // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
             block[i] = (byte) reverseSBOX[(block[i] & 0xFF) >>> 4][block[i] & 0x0F];
         }

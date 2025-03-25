@@ -9,25 +9,22 @@
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
-   <VBox prefHeight="50.0" prefWidth="100.0">
-      <children>
-         <Label text="Wybierz długość klucza:">
-            <font>
-               <Font size="16.0" />
-            </font>
-         </Label>
-         <HBox prefHeight="10.0" prefWidth="200.0" spacing="20.0">
-            <children>
-               <RadioButton fx:id="key128" mnemonicParsing="false" selected="true" text="128bit">
-                  <toggleGroup>
-                     <ToggleGroup fx:id="key" />
-                  </toggleGroup></RadioButton>
-               <RadioButton fx:id="key192" mnemonicParsing="false" text="192bit" toggleGroup="$key" />
-               <RadioButton fx:id="key256" mnemonicParsing="false" text="256bit" toggleGroup="$key" />
-            </children>
-         </HBox>
-      </children>
-   </VBox>
+    <VBox prefHeight="50.0" prefWidth="100.0">
+        <Label text="Wybierz długość klucza do wygenerowania:">
+           <font>
+               <Font size="16.0"/>
+           </font>
+        </Label>
+        <HBox prefHeight="10.0" prefWidth="200.0" spacing="20.0">
+            <RadioButton fx:id="key128" mnemonicParsing="false" selected="true" text="128bit">
+                <toggleGroup>
+                    <ToggleGroup fx:id="key"/>
+                </toggleGroup>
+            </RadioButton>
+            <RadioButton fx:id="key192" mnemonicParsing="false" text="192bit" toggleGroup="$key"/>
+            <RadioButton fx:id="key256" mnemonicParsing="false" text="256bit" toggleGroup="$key"/>
+        </HBox>
+    </VBox>
 
     <VBox prefWidth="1240.0" spacing="10.0">
         <Label fx:id="keyLabel" text="Wprowadź klucz:">
@@ -61,71 +58,69 @@
 
     <HBox spacing="20.0">
         <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-            <children>
-                <HBox spacing="10.0">
-                    <Label text="Dane do zaszyfrowania:">
-                        <font>
-                            <Font size="18.0" />
-                        </font>
-                    </Label>
-                    <Button fx:id="encryptButton" text="Zaszyfruj">
-                        <font>
-                            <Font size="14.0" />
-                        </font>
-                    </Button>
-                    <Button fx:id="loadDecryptedButton" text="Wczytaj z pliku">
-                        <font>
-                            <Font size="14.0" />
-                        </font>
-                    </Button>
-                </HBox>
-                <TextArea fx:id="dataField" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane" VBox.vgrow="ALWAYS" wrapText="true">
+            <HBox spacing="10.0">
+                <Label text="Dane do zaszyfrowania:">
                     <font>
-                        <Font size="14.0" />
+                        <Font size="18.0"/>
                     </font>
-                </TextArea>
-                <Button fx:id="copyDecryptedDataButton" text="Kopiuj">
+                </Label>
+                <Button fx:id="encryptButton" text="Zaszyfruj">
                     <font>
-                        <Font size="14.0" />
+                        <Font size="14.0"/>
                     </font>
                 </Button>
-            </children>
+                <Button fx:id="loadDecryptedButton" text="Wczytaj z pliku">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Button>
+            </HBox>
+            <TextArea fx:id="dataField" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane"
+                      wrapText="true" VBox.vgrow="ALWAYS">
+                <font>
+                    <Font size="14.0"/>
+                </font>
+            </TextArea>
+            <Button fx:id="copyDecryptedDataButton" text="Kopiuj">
+                <font>
+                    <Font size="14.0"/>
+                </font>
+            </Button>
         </VBox>
         <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-            <children>
-                <HBox spacing="10.0">
-                    <Label text="Dane do odszyfrowania:">
-                        <font>
-                            <Font size="18.0" />
-                        </font>
-                    </Label>
-                    <Button fx:id="decryptButton" text="Odszyfruj">
-                        <font>
-                            <Font size="14.0" />
-                        </font>
-                    </Button>
-                    <Button fx:id="loadEncryptedButton" text="Wczytaj z pliku">
-                        <font>
-                            <Font size="14.0" />
-                        </font>
-                    </Button>
-                    <Button fx:id="saveEncryptedButton" text="Zapisz do pliku">
-                        <font>
-                            <Font size="14.0" />
-                        </font>
-                    </Button>
-                </HBox>
-                <TextArea fx:id="encryptedDataField" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane" VBox.vgrow="ALWAYS" wrapText="true">
+            <HBox spacing="10.0">
+                <Label text="Dane do odszyfrowania:">
                     <font>
-                        <Font size="14.0" />
+                        <Font size="18.0"/>
                     </font>
-                </TextArea>
-                <Button fx:id="copyEncryptedDataButton" text="Kopiuj">
+                </Label>
+                <Button fx:id="decryptButton" text="Odszyfruj">
                     <font>
-                        <Font size="14.0" />
+                        <Font size="14.0"/>
                     </font>
                 </Button>
-            </children>
+                <Button fx:id="loadEncryptedButton" text="Wczytaj z pliku">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Button>
+                <Button fx:id="saveEncryptedButton" text="Zapisz do pliku">
+                    <font>
+                        <Font size="14.0"/>
+                    </font>
+                </Button>
+            </HBox>
+            <TextArea fx:id="encryptedDataField" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane"
+                      wrapText="true" VBox.vgrow="ALWAYS">
+                <font>
+                    <Font size="14.0"/>
+                </font>
+            </TextArea>
+            <Button fx:id="copyEncryptedDataButton" text="Kopiuj">
+                <font>
+                    <Font size="14.0"/>
+                </font>
+            </Button>
         </VBox>
     </HBox>
 

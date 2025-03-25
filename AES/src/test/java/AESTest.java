@@ -21,15 +21,14 @@ public class AESTest {
     @Test
     public void testEncrypt() {
         aes.generateMainKey(256);
-        aes.readFile("src/main/resources/testFile.txt");
-        aes.getData();
         System.out.println("-----------------------------------");
         System.out.println("Generated key (hex): " + aes.getMainKey().toString(16).toUpperCase());
         aes.keyExpansion(aes.getMainKey());
         byte[] bigKlucz = aes.getExpandedKey();
         System.out.println("Key expansion:" + bytesToHex(bigKlucz));
-        System.out.println("Read data from file (hex): " + bytesToHex(aes.getData()));
-        byte[] expectedData= aes.encrypt(aes.getData(), aes.getMainKey());
+        String data = "Hello World!";
+        System.out.println("Data (hex): " + bytesToHex(data.getBytes()));
+        byte[] expectedData= aes.encrypt(data.getBytes(), aes.getMainKey());
         System.out.println("Encrypted data: " + bytesToHex(expectedData));
         byte[] decryptedData = aes.decrypt(expectedData, aes.getMainKey());
         System.out.println("Decrypted data: " + aes.bytesToString(decryptedData));

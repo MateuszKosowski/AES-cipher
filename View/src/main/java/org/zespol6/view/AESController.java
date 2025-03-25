@@ -12,6 +12,9 @@ import java.util.Objects;
 public class AESController {
 
     @FXML
+    public Label keyLabel;
+
+    @FXML
     Button keyGenButton;
 
     @FXML
@@ -65,9 +68,7 @@ public class AESController {
     @FXML
     public void initialize() {
 
-        key.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
-            keyField.clear();
-        });
+        key.selectedToggleProperty().addListener((observable, oldValue, newValue) -> keyField.clear());
 
         AES aes = new AES();
         final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
@@ -79,12 +80,23 @@ public class AESController {
             keyField.setText(aes.getMainKey().toString(16).toUpperCase());
         });
 
-        keySaveButton.setOnAction(e -> {
-            saveButtonAction(keyField, null, 2);
-        });
+        keySaveButton.setOnAction(e -> saveButtonAction(keyField, null, 2));
 
         keyLoadButton.setOnAction(e -> {
             loadButtonAction(null, keyField, 2);
+            String keyHex = keyField.getText();
+            switch (keyField.getLength()*4) {
+                case 128:
+                    key128.setSelected(true);
+                    break;
+                case 192:
+                    key192.setSelected(true);
+                    break;
+                case 256:
+                    key256.setSelected(true);
+                    break;
+            }
+            keyField.setText(keyHex);
         });
 
         encryptButton.setOnAction(e -> {
@@ -102,13 +114,9 @@ public class AESController {
             }
         });
 
-        loadEncryptedButton.setOnAction(e -> {
-            loadButtonAction(encryptedDataField, null, 0);
-        });
+        loadEncryptedButton.setOnAction(e -> loadButtonAction(encryptedDataField, null, 0));
 
-        loadDecryptedButton.setOnAction(e -> {
-            loadButtonAction(dataField, null, 1);
-        });
+        loadDecryptedButton.setOnAction(e -> loadButtonAction(dataField, null, 1));
 
         decryptButton.setOnAction(e -> {
             try {
@@ -118,7 +126,6 @@ public class AESController {
 
                 // Hex string konwertujemy na tablicę bajtów
                 byte[] encryptedBytes = aes.hexToBytes(encryptedDataField.getText());
-
                 byte[] expectedData = aes.decrypt(encryptedBytes, aes.getMainKey());
                 dataField.setText(aes.bytesToString(expectedData));
             } catch (NumberFormatException ex) {
@@ -138,9 +145,7 @@ public class AESController {
             clipboard.setContent(content);
         });
 
-        saveEncryptedButton.setOnAction(e -> {
-            saveButtonAction(null, encryptedDataField, 0);
-        });
+        saveEncryptedButton.setOnAction(e -> saveButtonAction(null, encryptedDataField, 0));
     }
 
     private void loadButtonAction(TextArea textArea, TextField textField, int option) {
