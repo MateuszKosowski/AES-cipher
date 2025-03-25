@@ -75,8 +75,7 @@ public class AESController {
 
         keyGenButton.setOnAction(e -> {
             int keyLength = getKeySize();
-            // TODO: Implementacja generowania klucza AES o określonej długości
-            aes.generateMainKey();
+            aes.generateMainKey(keyLength);
             keyField.setText(aes.getMainKey().toString(16).toUpperCase());
         });
 

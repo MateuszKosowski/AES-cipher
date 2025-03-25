@@ -9,9 +9,9 @@ import java.security.SecureRandom;
 
 public class AES {
 
-    private final int amountOfRounds = 10;
+    private int amountOfRounds = 10;
     private final int blockSize = 16;
-    private final int keySize = 16;
+    private int keySize = 16;
     private byte[] data;
     private BigInteger mainKey;
     private byte[] expandedKey;
@@ -128,7 +128,8 @@ public class AES {
     }
 
     // generateMainKey
-    public void generateMainKey() {
+    public void generateMainKey(int size) {
+        keySize = size / 8; // Rozmiar klucza w bajtach
         byte[] keyBytes = new byte[keySize]; // 128 bitów = 16 bajtów
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
@@ -166,6 +167,17 @@ public class AES {
     // keyExpansion
     public void keyExpansion(BigInteger mainKey) {
         byte[] fixedMainKey = toByteKey(mainKey);
+        int keySize = fixedMainKey.length;
+
+        if (keySize == 16) {
+            amountOfRounds = 10;
+        } else if (keySize == 24) {
+            amountOfRounds = 12;
+        } else if (keySize == 32) {
+            amountOfRounds = 14;
+        } else {
+            throw new IllegalArgumentException("Invalid key size");
+        }
 
         // Buffor na wszystkie podklucze + klucz główny
         byte[] expandedKey = new byte[keySize * (amountOfRounds + 1)];
@@ -216,6 +228,41 @@ public class AES {
 
                 System.arraycopy(temp, 0, expandedKey, currentPos, 4);
                 currentPos += 4;
+            }
+
+            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 4 bajty
+            if (keySize == 32) {
+                // Dla klucza 256-bitowego dodajemy jeszcze 4 bajty
+                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+
+                subBytes(temp, 4);
+
+                for(int k = 0; k < 4; k++) {
+                    temp[k] ^= expandedKey[currentPos - 4 + k];
+                }
+
+                System.arraycopy(temp, 0, expandedKey, currentPos, 4);
+                currentPos += 4;
+            }
+
+            // Jeśli klucz 192-bitowy, to dodajemy jeszcze 8 bajtów
+            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 12 bajtów
+            if (keySize > 16) {
+                int x;
+
+                if (keySize == 24) x = 2;
+                else x = 3;
+
+                for (int j = 0; j < x; j++) {
+                    System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
+
+                    for(int k = 0; k < 4; k++) {
+                        temp[k] ^= expandedKey[currentPos - 4 + k];
+                    }
+
+                    System.arraycopy(temp, 0, expandedKey, currentPos, 4);
+                    currentPos += 4;
+                }
             }
         }
 

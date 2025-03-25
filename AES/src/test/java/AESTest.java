@@ -20,7 +20,7 @@ public class AESTest {
 
     @Test
     public void testEncrypt() {
-        aes.generateMainKey();
+        aes.generateMainKey(256);
         aes.readFile("src/main/resources/testFile.txt");
         aes.getData();
         System.out.println("-----------------------------------");
