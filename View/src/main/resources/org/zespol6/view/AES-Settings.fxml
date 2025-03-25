@@ -27,11 +27,21 @@
                     <Font size="14.0" />
                 </font>
             </Button>
+         <Button fx:id="keySaveButton" mnemonicParsing="false" text="Zapisz klucz do pliku">
+            <font>
+               <Font size="14.0" />
+            </font>
+         </Button>
+         <Button fx:id="keyLoadButton" mnemonicParsing="false" text="Wczytaj klucz z pliku">
+            <font>
+               <Font size="14.0" />
+            </font>
+         </Button>
         </HBox>
     </VBox>
 
     <HBox spacing="20.0">
-        <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+        <VBox spacing="10.0" HBox.hgrow="ALWAYS">
             <children>
                 <HBox spacing="10.0">
                     <Label text="Dane do zaszyfrowania:">
@@ -50,7 +60,7 @@
                         </font>
                     </Button>
                 </HBox>
-                <TextArea fx:id="dataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane">
+                <TextArea fx:id="dataField" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane" VBox.vgrow="ALWAYS">
                     <font>
                         <Font size="14.0" />
                     </font>
@@ -62,7 +72,7 @@
                 </Button>
             </children>
         </VBox>
-        <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+        <VBox spacing="10.0" HBox.hgrow="ALWAYS">
             <children>
                 <HBox spacing="10.0">
                     <Label text="Dane do odszyfrowania:">
@@ -86,7 +96,7 @@
                         </font>
                     </Button>
                 </HBox>
-                <TextArea fx:id="encryptedDataField" VBox.vgrow="ALWAYS" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane">
+                <TextArea fx:id="encryptedDataField" minHeight="300.0" prefHeight="300.0" promptText="Dane zaszyfrowane" VBox.vgrow="ALWAYS">
                     <font>
                         <Font size="14.0" />
                     </font>
@@ -101,4 +111,3 @@
     </HBox>
 
 </VBox>
-

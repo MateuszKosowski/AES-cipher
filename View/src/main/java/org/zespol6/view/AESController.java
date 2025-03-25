@@ -36,6 +36,12 @@ public class AESController {
     Button saveEncryptedButton;
 
     @FXML
+    Button keySaveButton;
+
+    @FXML
+    Button keyLoadButton;
+
+    @FXML
     TextArea dataField;
 
     @FXML
@@ -54,6 +60,14 @@ public class AESController {
         keyGenButton.setOnAction(e -> {
             aes.generateMainKey();
             keyField.setText(aes.getMainKey().toString(16).toUpperCase());
+        });
+
+        keySaveButton.setOnAction(e -> {
+            // TODO: Implement key save functionality
+        });
+
+        keyLoadButton.setOnAction(e -> {
+            // TODO: Implement key load functionality
         });
 
         encryptButton.setOnAction(e -> {
