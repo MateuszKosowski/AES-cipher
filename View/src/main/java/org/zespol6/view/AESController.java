@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
+import java.io.*;
 import org.zespol6.aes.AES;
 
 import java.math.BigInteger;
@@ -24,6 +25,15 @@ public class AESController {
 
     @FXML
     Button copyDecryptedDataButton;
+
+    @FXML
+    Button loadEncryptedButton;
+
+    @FXML
+    Button loadDecryptedButton;
+
+    @FXML
+    Button saveEncryptedButton;
 
     @FXML
     TextArea dataField;
@@ -58,6 +68,46 @@ public class AESController {
                 encryptedDataField.setText("Error: Invalid key format");
             } catch (Exception ex) {
                 encryptedDataField.setText("Error: " + ex.getMessage());
+            }
+        });
+
+        loadEncryptedButton.setOnAction(e -> {
+            // Otworzenie okienka dialogowego do wyboru pliku
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Wybierz plik z zaszyfrowanymi danymi");
+            fileChooser.getExtensionFilters().addAll(
+                    new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
+                    new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+            );
+            File selectedFile = fileChooser.showOpenDialog(null);
+
+            if (selectedFile != null) {
+                try {
+                    String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
+                    encryptedDataField.setText(contentLoad);
+                } catch (IOException ex) {
+                    encryptedDataField.setText("Error: " + ex.getMessage());
+                }
+            }
+        });
+
+        loadDecryptedButton.setOnAction(e -> {
+            // Otworzenie okienka dialogowego do wyboru pliku
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Wybierz plik z odszyfrowanymi danymi");
+            fileChooser.getExtensionFilters().addAll(
+                    new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
+                    new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+            );
+            File selectedFile = fileChooser.showOpenDialog(null);
+
+            if (selectedFile != null) {
+                try {
+                    String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
+                    dataField.setText(contentLoad);
+                } catch (IOException ex) {
+                    dataField.setText("Error: " + ex.getMessage());
+                }
             }
         });
 
