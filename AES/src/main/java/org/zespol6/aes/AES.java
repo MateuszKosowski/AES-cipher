@@ -150,7 +150,7 @@ public class AES {
 
     // keyExpansion
     public void keyExpansion(BigInteger mainKey) {
-        byte[] fixedMainKey = toByteKey(mainKey);
+        final byte[] fixedMainKey = toByteKey(mainKey);
         int keySize = fixedMainKey.length;
 
         if (keySize == 16) {
@@ -164,7 +164,7 @@ public class AES {
         }
 
         // Buffor na wszystkie podklucze + klucz główny
-        byte[] expandedKey = new byte[keySize * (amountOfRounds + 1)];
+        byte[] expandedKey = new byte[16 * (amountOfRounds + 1)];
 
         // Kopiowanie klucza głównego na początek
         System.arraycopy(fixedMainKey, 0, expandedKey, 0, keySize);
@@ -193,7 +193,7 @@ public class AES {
                 temp[0] ^=  getRconValue(i);
 
                 // XORowanie z poprzednim podkluczem
-                for(int j = 0; j < 4; j++) {
+                for (int j = 0; j < 4; j++) {
                     temp[j] ^= expandedKey[currentPos - keySize + j];
                 }
 
