@@ -174,14 +174,16 @@ public class AESController {
                 // Hex string konwertujemy na tablicę bajtów
                 byte[] expectedData;
                 if (field.isSelected()) {
-                    encryptedDataTextField = encryptedDataField.getText().getBytes(StandardCharsets.UTF_8);
-                    expectedData = aes.decrypt(encryptedDataTextField, aes.getMainKey());
+                    byte[] encryptedBytes = aes.hexToBytes(encryptedDataField.getText());
+                    expectedData = aes.decrypt(encryptedBytes, aes.getMainKey());
                     originalDataTextField = Arrays.copyOf(expectedData, expectedData.length);
+                    dataField.setText(new String(expectedData, StandardCharsets.UTF_8));
                 } else {
                     expectedData = aes.decrypt(encryptedDataFile, aes.getMainKey());
                     originalDataFile = Arrays.copyOf(expectedData, expectedData.length);
+                    dataField.setText(aes.bytesToHex(expectedData));
                 }
-                dataField.setText(aes.bytesToHex(expectedData));
+
             } catch (NumberFormatException ex) {
                 dataField.setText("Error: Invalid key format, key: " + new String(keyData).toLowerCase());
             } catch (Exception ex) {
@@ -272,6 +274,7 @@ public class AESController {
                 break;
             case 3:
                 fileChooser.setTitle("Zapisz odszyfrowane dane");
+                break; // Dodany break
             default:
                 fileChooser.setTitle("Zapisz plik");
                 break;
@@ -283,23 +286,42 @@ public class AESController {
 
         if (selectedFile != null) {
             try {
+                byte[] dataToSave = null;
+
                 switch (option) {
-                    case 0:
-                        java.nio.file.Files.write(selectedFile.toPath(), encryptedDataFile);
-                        file.setSelected(true);
+                    case 0: // Zaszyfrowane dane
+                        if (field.isSelected() && encryptedDataTextField != null) {
+                            dataToSave = encryptedDataTextField;
+                        } else if (encryptedDataFile != null) {
+                            dataToSave = encryptedDataFile;
+                        }
                         break;
-                    case 2:
-                        java.nio.file.Files.write(selectedFile.toPath(), keyData);
+                    case 2: // Klucz
+                        if (keyData != null) {
+                            dataToSave = keyData;
+                        }
                         break;
-                    case 3:
-                        java.nio.file.Files.write(selectedFile.toPath(), originalDataFile);
-                        file.setSelected(true);
-                        break;
-                    default:
+                    case 3: // Odszyfrowane dane
+                        if (field.isSelected() && originalDataTextField != null) {
+                            dataToSave = originalDataTextField;
+                        } else if (originalDataFile != null) {
+                            dataToSave = originalDataFile;
+                        }
                         break;
                 }
+
+                if (dataToSave != null) {
+                    java.nio.file.Files.write(selectedFile.toPath(), dataToSave);
+                } else {
+                    throw new IOException("Brak danych do zapisania");
+                }
+
             } catch (IOException ex) {
-                Objects.requireNonNullElse(textArea, textField).setText("Error: " + ex.getMessage());
+                if (textArea != null) {
+                    textArea.setText("Error: " + ex.getMessage());
+                } else if (textField != null) {
+                    textField.setText("Error: " + ex.getMessage());
+                }
             }
         }
     }
