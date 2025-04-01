@@ -22,6 +22,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.io.*;
+
 import org.zespol6.aes.AES;
 
 import java.math.BigInteger;
@@ -88,10 +89,40 @@ public class AESController {
     @FXML
     ToggleGroup key;
 
+    byte[] originalData;
+    byte[] encryptedData;
+    byte[] keyData;
+
     @FXML
     public void initialize() {
-
         key.selectedToggleProperty().addListener((observable, oldValue, newValue) -> keyField.clear());
+
+        // Dodanie listenerów na zmiany w polach tekstowych
+        dataField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.isEmpty()) {
+                try {
+                    AES aes = new AES();
+                    originalData = aes.hexToBytes(newValue);
+                } catch (Exception ex) {
+                    // Ignorujemy błędne dane - zostaną obsłużone podczas szyfrowania/deszyfrowania
+                }
+            } else {
+                originalData = null;
+            }
+        });
+
+        encryptedDataField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.isEmpty()) {
+                try {
+                    AES aes = new AES();
+                    encryptedData = aes.hexToBytes(newValue);
+                } catch (Exception ex) {
+                    // Ignorujemy błędne dane - zostaną obsłużone podczas szyfrowania/deszyfrowania
+                }
+            } else {
+                encryptedData = null;
+            }
+        });
 
         AES aes = new AES();
         final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
@@ -100,7 +131,8 @@ public class AESController {
         keyGenButton.setOnAction(e -> {
             int keyLength = getKeySize();
             aes.generateMainKey(keyLength);
-            keyField.setText(aes.getMainKey().toString(16).toUpperCase());
+            keyData = aes.getMainKey().toByteArray();
+            keyField.setText(aes.bytesToHex(keyData));
         });
 
         keySaveButton.setOnAction(e -> saveButtonAction(keyField, null, 2));
@@ -108,7 +140,7 @@ public class AESController {
         keyLoadButton.setOnAction(e -> {
             loadButtonAction(null, keyField, 2);
             String keyHex = keyField.getText();
-            switch (keyField.getLength()*4) {
+            switch (keyField.getLength() * 4) {
                 case 128:
                     key128.setSelected(true);
                     break;
@@ -124,11 +156,11 @@ public class AESController {
 
         encryptButton.setOnAction(e -> {
             try {
-                String keyHex = keyField.getText().toLowerCase();
+                String keyHex = aes.bytesToHex(keyData);
                 BigInteger keyBigInt = new BigInteger(keyHex, 16);
                 aes.setMainKey(keyBigInt);
-                aes.readStringToBytes(dataField.getText());
-                byte[] expectedData= aes.encrypt(aes.getData(), aes.getMainKey());
+                byte[] expectedData = aes.encrypt(originalData, aes.getMainKey());
+                encryptedData = Arrays.copyOf(expectedData, expectedData.length);
                 encryptedDataField.setText(aes.bytesToHex(expectedData));
             } catch (NumberFormatException ex) {
                 encryptedDataField.setText("Error: Invalid key format");
@@ -143,16 +175,16 @@ public class AESController {
 
         decryptButton.setOnAction(e -> {
             try {
-                String keyHex = keyField.getText().toLowerCase();
+                String keyHex = aes.bytesToHex(keyData);
                 BigInteger keyBigInt = new BigInteger(keyHex, 16);
                 aes.setMainKey(keyBigInt);
 
                 // Hex string konwertujemy na tablicę bajtów
-                byte[] encryptedBytes = aes.hexToBytes(encryptedDataField.getText());
-                byte[] expectedData = aes.decrypt(encryptedBytes, aes.getMainKey());
-                dataField.setText(aes.bytesToString(expectedData));
+                byte[] expectedData = aes.decrypt(encryptedData, aes.getMainKey());
+                originalData = Arrays.copyOf(expectedData, expectedData.length);
+                dataField.setText(aes.bytesToHex(expectedData));
             } catch (NumberFormatException ex) {
-                dataField.setText("Error: Invalid key format");
+                dataField.setText("Error: Invalid key format, key: " + new String(keyData).toLowerCase());
             } catch (Exception ex) {
                 dataField.setText("Error: " + ex.getMessage());
             }
@@ -191,29 +223,32 @@ public class AESController {
                 break;
         }
         fileChooser.getExtensionFilters().addAll(
-                new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
-                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt"),
-                new javafx.stage.FileChooser.ExtensionFilter("pdf", "*.pdf")
+                new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*")
         );
         File selectedFile = fileChooser.showOpenDialog(null);
 
         if (selectedFile != null) {
-                try {
-                    if (selectedFile.toPath().endsWith(".pdf")) {
-                        byte[] data = Files.readAllBytes(selectedFile.toPath());
-                        if (textArea != null) {
-                            textArea.setText(Arrays.toString(data));
-                        } else {
-                            textField.setText(Arrays.toString(data));
-                        }
-                    } else {
-                        String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
-                        if (textArea != null) {
-                            textArea.setText(contentLoad);
-                        } else {
-                            textField.setText(contentLoad);
-                        }
-                    }
+            try {
+                byte[] data = Files.readAllBytes(selectedFile.toPath());
+                switch (option) {
+                    case 0:
+                        encryptedData = Arrays.copyOf(data, data.length);
+                        break;
+                    case 1:
+                        originalData = Arrays.copyOf(data, data.length);
+                        break;
+                    case 3:
+                        keyData = Arrays.copyOf(data, data.length);
+                        break;
+                    default:
+                        break;
+                }
+                AES aes = new AES();
+                if (textArea != null) {
+                    textArea.setText(aes.bytesToHex(data));
+                } else {
+                    textField.setText(aes.bytesToHex(data));
+                }
             } catch (IOException ex) {
                 if (textArea != null) {
                     textArea.setText("Error: " + ex.getMessage());
@@ -241,22 +276,24 @@ public class AESController {
                 break;
         }
         fileChooser.getExtensionFilters().addAll(
-                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt"),
-                new javafx.stage.FileChooser.ExtensionFilter("PDF", "*.pdf")
+                new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*")
         );
         File selectedFile = fileChooser.showSaveDialog(null);
 
         if (selectedFile != null) {
             try {
-                if (selectedFile.toPath().toString().endsWith(".pdf")) {
-                    byte[] pdfData = textArea != null ? textArea.getText().getBytes() : textField.getText().getBytes();
-                    java.nio.file.Files.write(selectedFile.toPath(), pdfData);
-                } else {
-                    if (textArea != null) {
-                        java.nio.file.Files.write(selectedFile.toPath(), textArea.getText().getBytes());
-                    } else {
-                        java.nio.file.Files.write(selectedFile.toPath(), textField.getText().getBytes());
-                    }
+                switch (option) {
+                    case 0:
+                        java.nio.file.Files.write(selectedFile.toPath(), encryptedData);
+                        break;
+                    case 2:
+                        java.nio.file.Files.write(selectedFile.toPath(), keyData);
+                        break;
+                    case 3:
+                        java.nio.file.Files.write(selectedFile.toPath(), originalData);
+                        break;
+                    default:
+                        break;
                 }
             } catch (IOException ex) {
                 Objects.requireNonNullElse(textArea, textField).setText("Error: " + ex.getMessage());
