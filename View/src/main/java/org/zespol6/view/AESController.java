@@ -26,6 +26,7 @@ import java.io.*;
 import org.zespol6.aes.AES;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Objects;
@@ -89,40 +90,24 @@ public class AESController {
     @FXML
     ToggleGroup key;
 
-    byte[] originalData;
-    byte[] encryptedData;
+    @FXML
+    RadioButton field;
+
+    @FXML
+    RadioButton file;
+
+    @FXML
+    ToggleGroup fieldOrFile;
+
+    byte[] originalDataFile;
+    byte[] encryptedDataFile;
+    byte[] originalDataTextField;
+    byte[] encryptedDataTextField;
     byte[] keyData;
 
     @FXML
     public void initialize() {
         key.selectedToggleProperty().addListener((observable, oldValue, newValue) -> keyField.clear());
-
-        // Dodanie listenerów na zmiany w polach tekstowych
-        dataField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.isEmpty()) {
-                try {
-                    AES aes = new AES();
-                    originalData = aes.hexToBytes(newValue);
-                } catch (Exception ex) {
-                    // Ignorujemy błędne dane - zostaną obsłużone podczas szyfrowania/deszyfrowania
-                }
-            } else {
-                originalData = null;
-            }
-        });
-
-        encryptedDataField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.isEmpty()) {
-                try {
-                    AES aes = new AES();
-                    encryptedData = aes.hexToBytes(newValue);
-                } catch (Exception ex) {
-                    // Ignorujemy błędne dane - zostaną obsłużone podczas szyfrowania/deszyfrowania
-                }
-            } else {
-                encryptedData = null;
-            }
-        });
 
         AES aes = new AES();
         final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
@@ -159,8 +144,15 @@ public class AESController {
                 String keyHex = aes.bytesToHex(keyData);
                 BigInteger keyBigInt = new BigInteger(keyHex, 16);
                 aes.setMainKey(keyBigInt);
-                byte[] expectedData = aes.encrypt(originalData, aes.getMainKey());
-                encryptedData = Arrays.copyOf(expectedData, expectedData.length);
+                byte[] expectedData;
+                if (field.isSelected()) {
+                    originalDataTextField = dataField.getText().getBytes(StandardCharsets.UTF_8);
+                    expectedData = aes.encrypt(originalDataTextField, aes.getMainKey());
+                    encryptedDataTextField = Arrays.copyOf(expectedData, expectedData.length);
+                } else {
+                    expectedData = aes.encrypt(originalDataFile, aes.getMainKey());
+                    encryptedDataFile = Arrays.copyOf(expectedData, expectedData.length);
+                }
                 encryptedDataField.setText(aes.bytesToHex(expectedData));
             } catch (NumberFormatException ex) {
                 encryptedDataField.setText("Error: Invalid key format");
@@ -180,8 +172,15 @@ public class AESController {
                 aes.setMainKey(keyBigInt);
 
                 // Hex string konwertujemy na tablicę bajtów
-                byte[] expectedData = aes.decrypt(encryptedData, aes.getMainKey());
-                originalData = Arrays.copyOf(expectedData, expectedData.length);
+                byte[] expectedData;
+                if (field.isSelected()) {
+                    encryptedDataTextField = encryptedDataField.getText().getBytes(StandardCharsets.UTF_8);
+                    expectedData = aes.decrypt(encryptedDataTextField, aes.getMainKey());
+                    originalDataTextField = Arrays.copyOf(expectedData, expectedData.length);
+                } else {
+                    expectedData = aes.decrypt(encryptedDataFile, aes.getMainKey());
+                    originalDataFile = Arrays.copyOf(expectedData, expectedData.length);
+                }
                 dataField.setText(aes.bytesToHex(expectedData));
             } catch (NumberFormatException ex) {
                 dataField.setText("Error: Invalid key format, key: " + new String(keyData).toLowerCase());
@@ -232,10 +231,12 @@ public class AESController {
                 byte[] data = Files.readAllBytes(selectedFile.toPath());
                 switch (option) {
                     case 0:
-                        encryptedData = Arrays.copyOf(data, data.length);
+                        encryptedDataFile = Arrays.copyOf(data, data.length);
+                        file.setSelected(true);
                         break;
                     case 1:
-                        originalData = Arrays.copyOf(data, data.length);
+                        originalDataFile = Arrays.copyOf(data, data.length);
+                        file.setSelected(true);
                         break;
                     case 3:
                         keyData = Arrays.copyOf(data, data.length);
@@ -284,13 +285,15 @@ public class AESController {
             try {
                 switch (option) {
                     case 0:
-                        java.nio.file.Files.write(selectedFile.toPath(), encryptedData);
+                        java.nio.file.Files.write(selectedFile.toPath(), encryptedDataFile);
+                        file.setSelected(true);
                         break;
                     case 2:
                         java.nio.file.Files.write(selectedFile.toPath(), keyData);
                         break;
                     case 3:
-                        java.nio.file.Files.write(selectedFile.toPath(), originalData);
+                        java.nio.file.Files.write(selectedFile.toPath(), originalDataFile);
+                        file.setSelected(true);
                         break;
                     default:
                         break;

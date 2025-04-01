@@ -337,6 +337,22 @@ public class AES {
             System.arraycopy(blocks[i], 0, decrypted, i * blockSize, blockSize);
         }
 
+        // Usuwamy dodatkowe zera z końca odszyfrowanych danych
+        int paddingEnd = decrypted.length;
+        for (int i = decrypted.length - 1; i >= Math.max(0, decrypted.length - 17); i--) {
+            if ((decrypted[i] & 0xFF) != 0x00) {
+                break;
+            }
+            paddingEnd = i;
+        }
+
+        // Jeśli znaleźliśmy padding, tworzymy nową tablicę bez paddingu
+        if (paddingEnd < decrypted.length) {
+            byte[] trimmedData = new byte[paddingEnd];
+            System.arraycopy(decrypted, 0, trimmedData, 0, paddingEnd);
+            return trimmedData;
+        }
+
         return decrypted;
     }
 
