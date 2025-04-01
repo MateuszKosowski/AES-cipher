@@ -25,6 +25,8 @@ import java.io.*;
 import org.zespol6.aes.AES;
 
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class AESController {
@@ -55,6 +57,9 @@ public class AESController {
 
     @FXML
     Button saveEncryptedButton;
+
+    @FXML
+    Button saveDecryptedButton;
 
     @FXML
     Button keySaveButton;
@@ -164,6 +169,8 @@ public class AESController {
         });
 
         saveEncryptedButton.setOnAction(e -> saveButtonAction(null, encryptedDataField, 0));
+
+        saveDecryptedButton.setOnAction(e -> saveButtonAction(null, dataField, 3));
     }
 
     private void loadButtonAction(TextArea textArea, TextField textField, int option) {
@@ -185,18 +192,28 @@ public class AESController {
         }
         fileChooser.getExtensionFilters().addAll(
                 new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*"),
-                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt"),
+                new javafx.stage.FileChooser.ExtensionFilter("pdf", "*.pdf")
         );
         File selectedFile = fileChooser.showOpenDialog(null);
 
         if (selectedFile != null) {
-            try {
-                String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
-                if (textArea != null) {
-                    textArea.setText(contentLoad);
-                } else {
-                    textField.setText(contentLoad);
-                }
+                try {
+                    if (selectedFile.toPath().endsWith(".pdf")) {
+                        byte[] data = Files.readAllBytes(selectedFile.toPath());
+                        if (textArea != null) {
+                            textArea.setText(Arrays.toString(data));
+                        } else {
+                            textField.setText(Arrays.toString(data));
+                        }
+                    } else {
+                        String contentLoad = new String(java.nio.file.Files.readAllBytes(selectedFile.toPath()));
+                        if (textArea != null) {
+                            textArea.setText(contentLoad);
+                        } else {
+                            textField.setText(contentLoad);
+                        }
+                    }
             } catch (IOException ex) {
                 if (textArea != null) {
                     textArea.setText("Error: " + ex.getMessage());
@@ -217,21 +234,29 @@ public class AESController {
             case 2:
                 fileChooser.setTitle("Zapisz klucz");
                 break;
+            case 3:
+                fileChooser.setTitle("Zapisz odszyfrowane dane");
             default:
                 fileChooser.setTitle("Zapisz plik");
                 break;
         }
         fileChooser.getExtensionFilters().addAll(
-                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt")
+                new javafx.stage.FileChooser.ExtensionFilter("Pliki tekstowe", "*.txt"),
+                new javafx.stage.FileChooser.ExtensionFilter("PDF", "*.pdf")
         );
         File selectedFile = fileChooser.showSaveDialog(null);
 
         if (selectedFile != null) {
             try {
-                if (textArea != null) {
-                    java.nio.file.Files.write(selectedFile.toPath(), textArea.getText().getBytes());
+                if (selectedFile.toPath().toString().endsWith(".pdf")) {
+                    byte[] pdfData = textArea != null ? textArea.getText().getBytes() : textField.getText().getBytes();
+                    java.nio.file.Files.write(selectedFile.toPath(), pdfData);
                 } else {
-                    java.nio.file.Files.write(selectedFile.toPath(), textField.getText().getBytes());
+                    if (textArea != null) {
+                        java.nio.file.Files.write(selectedFile.toPath(), textArea.getText().getBytes());
+                    } else {
+                        java.nio.file.Files.write(selectedFile.toPath(), textField.getText().getBytes());
+                    }
                 }
             } catch (IOException ex) {
                 Objects.requireNonNullElse(textArea, textField).setText("Error: " + ex.getMessage());
