@@ -22,14 +22,19 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
+/**
+ * Klasa implementująca algorytm szyfrowania AES (Advanced Encryption Standard).
+ * Obsługuje klucze o długości 128, 192 i 256 bitów.
+ */
 public class AES {
 
-    private int amountOfRounds = 10;
-    private final int blockSize = 16;
-    private byte[] data;
-    private BigInteger mainKey;
-    private byte[] expandedKey;
+    private int amountOfRounds = 10;        // Domyślna liczba rund dla klucza 128-bitowego
+    private final int blockSize = 16;       // Rozmiar bloku w bajtach (128 bitów)
+    private byte[] data;                    // Dane do szyfrowania/deszyfrowania
+    private BigInteger mainKey;             // Główny klucz szyfrowania
+    private byte[] expandedKey;             // Rozszerzony klucz dla wszystkich rund
 
+    // S-BOX - tablica substytucji używana w operacji SubBytes
     // Każdy bajt danych jest zastępowany innym bajtem zgodnie z tabelą SBOX. Konstrukcja tabeli gwarantuje nieliniowość zastępowania.
     private final int[][] SBOX = {
             {0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76},
@@ -50,7 +55,7 @@ public class AES {
             {0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16}
     };
 
-    // Odwrotny SBOX
+    // Odwrotny S-BOX używany podczas deszyfrowania
     private final int[][] reverseSBOX = {
             {0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb},
             {0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb},
@@ -70,7 +75,7 @@ public class AES {
             {0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d}
     };
 
-    // Stała RCON - wartości używane w kluczach rundy
+    // Stałe RCON - wartości używane w generowaniu kluczy rundy
     private final int[] RCON = {
             0x01, 0x02, 0x04, 0x08,
             0x10, 0x20, 0x40, 0x80,
@@ -78,7 +83,7 @@ public class AES {
             0xAB, 0x4D
     };
 
-    // Stała MCOL - macierz mnożenia w mixColumns
+    // Macierz mnożenia używana w transformacji MixColumns
     private final int[] MCOL = {
             2, 3, 1, 1,
             1, 2, 3, 1,
@@ -86,6 +91,7 @@ public class AES {
             3, 1, 1, 2
     };
 
+    // Odwrotna macierz mnożenia używana w operacji odwrotnej do MixColumns
     private final int[] MCOL_INV = {
             14, 11, 13, 9,
             9, 14, 11, 13,
@@ -93,17 +99,23 @@ public class AES {
             11, 13, 9, 14
     };
 
-    // readFromText
-    public void readStringToBytes(String text) {
-        data = text.getBytes(StandardCharsets.UTF_8);
-    }
 
-
-    // bytesToString
+    /**
+     * Konwertuje tablicę bajtów na ciąg tekstowy.
+     *
+     * @param data Tablica bajtów do konwersji
+     * @return Tekst uzyskany z tablicy bajtów
+     */
     public String bytesToString(byte[] data) {
         return new String(data, StandardCharsets.UTF_8);
     }
 
+    /**
+     * Konwertuje tablicę bajtów na reprezentację szesnastkową.
+     *
+     * @param bytes Tablica bajtów do konwersji
+     * @return Reprezentacja szesnastkowa w formie ciągu znaków
+     */
     public String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
@@ -112,6 +124,13 @@ public class AES {
         return sb.toString();
     }
 
+    /**
+     * Konwertuje ciąg znaków szesnastkowych na tablicę bajtów.
+     *
+     * @param hex Ciąg znaków szesnastkowych
+     * @return Tablica bajtów
+     * @throws IllegalArgumentException gdy długość ciągu nie jest parzysta
+     */
     public byte[] hexToBytes(String hex) {
         if (hex.length() % 2 != 0) {
             throw new IllegalArgumentException("Hex string must have an even length");
@@ -120,39 +139,57 @@ public class AES {
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
             data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-                    + Character.digit(hex.charAt(i+1), 16));
+                    + Character.digit(hex.charAt(i + 1), 16));
         }
         return data;
     }
 
-    // getData
-    public byte[] getData() {
-        return (data != null) ? data : new byte[0];
-    }
 
-    // generateMainKey
+    /**
+     * Generuje losowy klucz o podanej długości w bitach.
+     *
+     * @param size Rozmiar klucza w bitach (128, 192 lub 256)
+     */
     public void generateMainKey(int size) {
         int keySize = size / 8; // Rozmiar klucza w bajtach
-        byte[] keyBytes = new byte[keySize]; // 128 bitów = 16 bajtów
+        byte[] keyBytes = new byte[keySize];
         new SecureRandom().nextBytes(keyBytes);
         mainKey = new BigInteger(1, keyBytes); // Ustawienie znaku na dodatni
     }
 
-    // getMainKey
+    /**
+     * Zwraca aktualny klucz główny.
+     *
+     * @return Klucz główny jako BigInteger
+     */
     public BigInteger getMainKey() {
         return mainKey;
     }
 
+    /**
+     * Ustawia klucz główny.
+     *
+     * @param mainKey Klucz główny jako BigInteger
+     */
     public void setMainKey(BigInteger mainKey) {
         this.mainKey = mainKey;
     }
 
-    // getExpandedKey
+    /**
+     * Zwraca rozszerzony klucz dla wszystkich rund.
+     *
+     * @return Tablica bajtów z rozszerzonym kluczem
+     */
     public byte[] getExpandedKey() {
         return expandedKey;
     }
 
-    // toByteKey
+    /**
+     * Konwertuje klucz w postaci BigInteger na tablicę bajtów o stałym rozmiarze.
+     *
+     * @param key Klucz w postaci BigInteger
+     * @return Tablica bajtów o długości blockSize (16 bajtów)
+     */
     public byte[] toByteKey(BigInteger key) {
         byte[] keyBytes = key.toByteArray();
         byte[] fixedKey = new byte[blockSize];
@@ -167,22 +204,28 @@ public class AES {
         return fixedKey;
     }
 
-    // keyExpansion
+    /**
+     * Generuje rozszerzone klucze dla wszystkich rund szyfrowania.
+     *
+     * @param mainKey Klucz główny w postaci BigInteger
+     * @throws IllegalArgumentException gdy rozmiar klucza jest nieprawidłowy
+     */
     public void keyExpansion(BigInteger mainKey) {
         final byte[] fixedMainKey = toByteKey(mainKey);
         int keySize = fixedMainKey.length;
 
+        // Ustawienie liczby rund w zależności od rozmiaru klucza
         if (keySize == 16) {
-            amountOfRounds = 10;
+            amountOfRounds = 10;      // 128 bitów
         } else if (keySize == 24) {
-            amountOfRounds = 12;
+            amountOfRounds = 12;      // 192 bity
         } else if (keySize == 32) {
-            amountOfRounds = 14;
+            amountOfRounds = 14;      // 256 bitów
         } else {
             throw new IllegalArgumentException("Invalid key size");
         }
 
-        // Buffor na wszystkie podklucze + klucz główny
+        // Bufor na wszystkie podklucze + klucz główny
         byte[] expandedKey = new byte[16 * (amountOfRounds + 1)];
 
         // Kopiowanie klucza głównego na początek
@@ -193,39 +236,37 @@ public class AES {
         // Generowanie kolejnych podkluczy
         for (int i = 1; i <= amountOfRounds; i++) {
 
-            byte [] temp = new byte[4];
+            byte[] temp = new byte[4];
             System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
             // Utworzenie 4 kolejnych bajtów klucza
 
-                // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
-                byte tempByte = temp[0];
-                for (int j = 0; j < 3; j++) {
-                    temp[j] = temp[j + 1];
-                }
-                temp[3] = tempByte;
+            // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
+            byte tempByte = temp[0];
+            for (int j = 0; j < 3; j++) {
+                temp[j] = temp[j + 1];
+            }
+            temp[3] = tempByte;
 
-                // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
-                subBytes(temp, 4);
+            // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
+            subBytes(temp, 4);
 
-                // XORowanie pierwszego bajtu słowa z RCON
-                temp[0] ^=  getRconValue(i);
+            // XORowanie pierwszego bajtu słowa z RCON
+            temp[0] ^= getRconValue(i);
 
-                // XORowanie z poprzednim podkluczem
-                for (int j = 0; j < 4; j++) {
-                    temp[j] ^= expandedKey[currentPos - keySize + j];
-                }
+            // XORowanie z poprzednim podkluczem
+            for (int j = 0; j < 4; j++) {
+                temp[j] ^= expandedKey[currentPos - keySize + j];
+            }
 
             System.arraycopy(temp, 0, expandedKey, currentPos, 4);
             currentPos += 4;
 
             // Utworzenie kolejnych 12 bajtów klucza
-            for(int j = 0; j < 3; j++) {
-
-                // nie wiem czy to jest potrzebne
+            for (int j = 0; j < 3; j++) {
                 System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
-                for(int k = 0; k < 4; k++) {
+                for (int k = 0; k < 4; k++) {
                     temp[k] ^= expandedKey[currentPos - keySize + k];
                 }
 
@@ -233,14 +274,12 @@ public class AES {
                 currentPos += 4;
             }
 
-            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 4 bajty
+            // Dodatkowe operacje dla kluczy 256-bitowych
             if (keySize == 32) {
-                // Dla klucza 256-bitowego dodajemy jeszcze 4 bajty
                 System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
-
                 subBytes(temp, 4);
 
-                for(int k = 0; k < 4; k++) {
+                for (int k = 0; k < 4; k++) {
                     temp[k] ^= expandedKey[currentPos - 4 + k];
                 }
 
@@ -248,18 +287,14 @@ public class AES {
                 currentPos += 4;
             }
 
-            // Jeśli klucz 192-bitowy, to dodajemy jeszcze 8 bajtów
-            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 12 bajtów
+            // Dodatkowe operacje dla kluczy 192 i 256-bitowych
             if (keySize > 16) {
-                int x;
-
-                if (keySize == 24) x = 2;
-                else x = 3;
+                int x = (keySize == 24) ? 2 : 3;
 
                 for (int j = 0; j < x; j++) {
                     System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
 
-                    for(int k = 0; k < 4; k++) {
+                    for (int k = 0; k < 4; k++) {
                         temp[k] ^= expandedKey[currentPos - 4 + k];
                     }
 
@@ -272,23 +307,27 @@ public class AES {
         this.expandedKey = expandedKey;
     }
 
-    // encrypt
+    /**
+     * Szyfruje dane przy użyciu podanego klucza.
+     *
+     * @param data Dane do zaszyfrowania
+     * @param key  Klucz szyfrujący
+     * @return Zaszyfrowane dane
+     */
     public byte[] encrypt(byte[] data, BigInteger key) {
         byte[][] blocks = splitIntoBlocks(data);
         keyExpansion(key);
 
         for (byte[] block : blocks) {
-
-            // Runda inicjalizacyjna
+            // Runda inicjalizacyjna - dodanie klucza rundy 0
             addRoundKey(block, 0);
 
-            // Rundy 1-9
-
+            // Rundy 1 do (amountOfRounds-1)
             for (int round = 1; round < amountOfRounds; round++) {
-                subBytes(block, blockSize);
-                shiftRows(block, true);
-                mixColumns(block, true);
-                addRoundKey(block, round);
+                subBytes(block, blockSize);       // Zastąpienie bajtów
+                shiftRows(block, true);           // Przesunięcie wierszy
+                mixColumns(block, true);          // Mieszanie kolumn
+                addRoundKey(block, round);        // Dodanie klucza rundy
             }
 
             // Ostatnia runda (bez mixColumns)
@@ -306,29 +345,33 @@ public class AES {
         return encrypted;
     }
 
-    // decrypt
+    /**
+     * Deszyfruje dane przy użyciu podanego klucza.
+     *
+     * @param encrypted Zaszyfrowane dane
+     * @param key       Klucz deszyfrujący
+     * @return Odszyfrowane dane
+     */
     public byte[] decrypt(byte[] encrypted, BigInteger key) {
         byte[][] blocks = splitIntoBlocks(encrypted);
         keyExpansion(key);
 
         for (byte[] block : blocks) {
-
-            // Runda inicializacyjna odszyfrowanie
+            // Runda inicjalizacyjna odszyfrowania
             addRoundKey(block, amountOfRounds);
 
-            // Rundy 1-9 odszyfrowanie
-            for(int round = amountOfRounds - 1; round > 0; round--) {
-                shiftRows(block, false);
-                reverseSubBytes(block);
-                addRoundKey(block, round);
-                mixColumns(block, false);
+            // Rundy (amountOfRounds-1) do 1 odszyfrowanie
+            for (int round = amountOfRounds - 1; round > 0; round--) {
+                shiftRows(block, false);          // Odwrotne przesunięcie wierszy
+                reverseSubBytes(block);           // Odwrotne zastąpienie bajtów
+                addRoundKey(block, round);        // Dodanie klucza rundy
+                mixColumns(block, false);         // Odwrotne mieszanie kolumn
             }
 
-            // Ostatnia runda odszyfrowanie
+            // Ostatnia runda odszyfrowania
             shiftRows(block, false);
             reverseSubBytes(block);
             addRoundKey(block, 0);
-
         }
 
         // Łączymy bloki z powrotem w jeden ciąg bajtów
@@ -337,7 +380,7 @@ public class AES {
             System.arraycopy(blocks[i], 0, decrypted, i * blockSize, blockSize);
         }
 
-        // Usuwamy dodatkowe zera z końca odszyfrowanych danych
+        // Usuwamy dodatkowe zera z końca odszyfrowanych danych (padding)
         int paddingEnd = decrypted.length;
         for (int i = decrypted.length - 1; i >= Math.max(0, decrypted.length - 17); i--) {
             if ((decrypted[i] & 0xFF) != 0x00) {
@@ -356,7 +399,14 @@ public class AES {
         return decrypted;
     }
 
-    // splitIntoBlocks
+    /**
+     * Dzieli dane na bloki o rozmiarze blockSize (16 bajtów).
+     * Jeśli długość danych nie jest wielokrotnością blockSize,
+     * ostatni blok jest uzupełniany zerami.
+     *
+     * @param data Dane do podziału
+     * @return Dwuwymiarowa tablica bloków
+     */
     public byte[][] splitIntoBlocks(byte[] data) {
         // Ilość bloków - musi być cast na double, aby wynik był zmiennoprzecinkowy, zaokrąglamy w górę i rzutujemy na int
         int numBlocks = (int) Math.ceil(data.length / (double) blockSize);
@@ -371,14 +421,19 @@ public class AES {
             int length = Math.min(blockSize, data.length - start);
 
             // Kopiowanie danych do bloku
-            // Argumenty: źródło, początek, cel, początek_w_celu, długość
-            // Reszta pozostaje zerowa (Java inicjalizuje bajty na 0)
             System.arraycopy(data, start, blocks[i], 0, length);
+            // Reszta pozostaje zerowa (Java inicjalizuje bajty na 0)
         }
         return blocks;
     }
 
-    // getRconValue
+    /**
+     * Zwraca wartość RCON dla danej iteracji.
+     *
+     * @param iteration Numer iteracji
+     * @return Wartość RCON jako bajt
+     * @throws IllegalArgumentException gdy numer iteracji jest poza zakresem
+     */
     private byte getRconValue(int iteration) {
         if (iteration > RCON.length) {
             throw new IllegalArgumentException("RCON iteration out of bounds");
@@ -386,16 +441,25 @@ public class AES {
         return (byte) RCON[iteration - 1];
     }
 
-    // addRoundKey
+    /**
+     * Wykonuje operację AddRoundKey - XOR bloku z kluczem danej rundy.
+     *
+     * @param block         Blok danych
+     * @param numberOfRound Numer rundy
+     */
     public void addRoundKey(byte[] block, int numberOfRound) {
-
         // XORowanie bloku z kluczem
         for (int i = 0; i < blockSize; i++) {
             block[i] ^= expandedKey[numberOfRound * blockSize + i];
         }
     }
 
-    // subBytes
+    /**
+     * Wykonuje operację SubBytes - zastąpienie każdego bajtu wartością z tablicy SBOX.
+     *
+     * @param block Blok danych
+     * @param size  Rozmiar bloku
+     */
     public void subBytes(byte[] block, int size) {
         for (int i = 0; i < size; i++) {
             // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
@@ -403,51 +467,74 @@ public class AES {
         }
     }
 
-    // reverseSubBytes
+    /**
+     * Wykonuje odwrotną operację SubBytes - zastąpienie każdego bajtu wartością z tablicy reverseSBOX.
+     * Ta operacja jest wykorzystywana podczas deszyfrowania i jest odwrotną do operacji SubBytes.
+     *
+     * @param block Blok danych do przetworzenia
+     */
     private void reverseSubBytes(byte[] block) {
         for (int i = 0; i < blockSize; i++) {
-            // Wiersz określamy pierwszą cyfrą bajtu, kolumnę drugą
+            // Pobieramy indeksy dla tablicy reverseSBOX:
+            // - pierwsze 4 bity (starsze) bajta określają wiersz
+            // - ostatnie 4 bity (młodsze) bajta określają kolumnę
             block[i] = (byte) reverseSBOX[(block[i] & 0xFF) >>> 4][block[i] & 0x0F];
         }
     }
 
-    // shiftRows
-    private void shiftRows(byte[] block, boolean direction){
+    /**
+     * Wykonuje operację ShiftRows - cykliczne przesunięcie wierszy macierzy stanu.
+     * Pierwszy wiersz pozostaje bez zmian, drugi wiersz przesuwany jest o 1 pozycję,
+     * trzeci o 2 pozycje, a czwarty o 3 pozycje. Kierunek przesunięcia zależy od parametru direction.
+     *
+     * @param block     Blok danych reprezentujący macierz stanu (4x4)
+     * @param direction Kierunek przesunięcia (true - szyfrowanie, false - deszyfrowanie)
+     */
+    private void shiftRows(byte[] block, boolean direction) {
         for (int i = 1; i < 4; i++) {
-            // tymaczasowy wiersz
+            // Tymczasowa tablica na wiersz
             byte[] row = new byte[4];
 
-            // kopiowanie wiersza
+            // Kopiowanie wiersza (w AES dane są przechowywane jako kolumny)
             for (int j = 0; j < 4; j++) {
                 row[j] = block[i + j * 4];
             }
 
+            // Przesunięcie cykliczne w zależności od kierunku i numeru wiersza
             if (direction) {
+                // Szyfrowanie - przesunięcie w lewo
                 if (i == 1) {
-                    row = new byte[]{row[1], row[2], row[3], row[0]};
+                    row = new byte[]{row[1], row[2], row[3], row[0]};      // Przesunięcie o 1
                 } else if (i == 2) {
-                    row = new byte[]{row[2], row[3], row[0], row[1]};
+                    row = new byte[]{row[2], row[3], row[0], row[1]};      // Przesunięcie o 2
                 } else {
-                    row = new byte[]{row[3], row[0], row[1], row[2]};
+                    row = new byte[]{row[3], row[0], row[1], row[2]};      // Przesunięcie o 3
                 }
             } else {
+                // Deszyfrowanie - przesunięcie w prawo
                 if (i == 1) {
-                    row = new byte[]{row[3], row[0], row[1], row[2]};
+                    row = new byte[]{row[3], row[0], row[1], row[2]};      // Przesunięcie o 3
                 } else if (i == 2) {
-                    row = new byte[]{row[2], row[3], row[0], row[1]};
+                    row = new byte[]{row[2], row[3], row[0], row[1]};      // Przesunięcie o 2
                 } else {
-                    row = new byte[]{row[1], row[2], row[3], row[0]};
+                    row = new byte[]{row[1], row[2], row[3], row[0]};      // Przesunięcie o 1
                 }
             }
 
-            // kopiowanie wiersza z powrotem
+            // Kopiowanie przesunięteho wiersza z powrotem do bloku
             for (int j = 0; j < 4; j++) {
                 block[i + j * 4] = row[j];
             }
         }
     }
 
-    // mixColumns
+    /**
+     * Wykonuje operację MixColumns - liniowe przekształcenie każdej kolumny macierzy stanu.
+     * Każda kolumna jest traktowana jako wielomian i mnożona przez stały wielomian w ciele GF(2^8).
+     *
+     * @param block  Blok danych reprezentujący macierz stanu (4x4)
+     * @param option Tryb operacji (true - szyfrowanie, false - deszyfrowanie)
+     */
     private void mixColumns(byte[] block, boolean option) {
         for (int i = 0; i < 4; i++) {
             byte[] column = new byte[4];
@@ -457,11 +544,12 @@ public class AES {
             // Kopiowanie kolumny do tymczasowej tablicy
             System.arraycopy(block, i * 4, column, 0, 4);
 
-            // Przeprowadzenie mnożenia na kolumnie
+            // Przeprowadzenie mnożenia macierzowego na kolumnie
             for (int j = 0; j < 4; j++) {
                 newColumn[j] = 0;
                 for (int k = 0; k < 4; k++) {
                     if (option) {
+                        // Dla szyfrowania stosujemy tablicę MCOL
                         value = switch (MCOL[j * 4 + k]) {
                             case 1 -> gfMul1(column[k]);
                             case 2 -> gfMul2(column[k]);
@@ -469,6 +557,7 @@ public class AES {
                             default -> throw new IllegalArgumentException("Invalid MCOL value");
                         };
                     } else {
+                        // Dla deszyfrowania stosujemy tablicę MCOL_INV
                         value = switch (MCOL_INV[j * 4 + k]) {
                             case 9 -> gfMul9(column[k]);
                             case 11 -> gfMul11(column[k]);
@@ -478,68 +567,120 @@ public class AES {
                         };
                     }
 
-                    // Przypisanie wyniku do pozycji w nowej kolumnie
+                    // XOR wyniku mnożenia z aktualną wartością
                     newColumn[j] ^= value;
                 }
             }
+            // Kopiowanie przetworzonej kolumny z powrotem do bloku
             System.arraycopy(newColumn, 0, block, i * 4, 4);
         }
     }
 
-    // gfMul1
+    /**
+     * Mnożenie przez 1 w ciele GF(2^8).
+     * Operacja tożsamościowa - zwraca ten sam bajt bez zmian.
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia (ten sam bajt)
+     */
     private byte gfMul1(byte b) {
-        return b; // Mnożenie przez 1 to wartość bez zmian
+        return b;
     }
 
-    // gfMul2
+    /**
+     * Mnożenie przez 2 w ciele GF(2^8).
+     * Przesunięcie bitowe w lewo o 1 pozycję z redukcją modulo wielomian x^8 + x^4 + x^3 + x + 1.
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul2(byte b) {
-        // Usunięcie znaku z bajtu
+        // Usunięcie znaku z bajtu (konwersja na wartość nieujemną)
         int bInt = b & 0xFF;
+
         // Przesunięcie w lewo i XOR z 0x1B jeśli najwyższy bit jest 1
+        // (0x1B to wielomian redukcji x^4 + x^3 + x + 1)
         if ((bInt & 0x80) == 0) {
-            return (byte)(bInt << 1);
+            return (byte) (bInt << 1);
         } else {
-            return (byte)((bInt << 1) ^ 0x1B);
+            return (byte) ((bInt << 1) ^ 0x1B);
         }
     }
 
-    // gfMul3
+    /**
+     * Mnożenie przez 3 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 2 i XOR z pierwotną wartością (3 = 2 + 1).
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul3(byte b) {
-        // Mnożenie przez 3 to mnożenie przez 2 i XOR z oryginalną wartością
-        return (byte)(gfMul2(b) ^ (b & 0xFF));
+        return (byte) (gfMul2(b) ^ (b & 0xFF));
     }
 
-    // gfMul4
+    /**
+     * Mnożenie przez 4 w ciele GF(2^8).
+     * Implementowane jako dwukrotne mnożenie przez 2.
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul4(byte b) {
         return gfMul2(gfMul2(b));
     }
 
-    // gfMul8
+    /**
+     * Mnożenie przez 8 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 4, a następnie przez 2.
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul8(byte b) {
         return gfMul2(gfMul4(b));
     }
 
-    // gfMul9
+    /**
+     * Mnożenie przez 9 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 8 i XOR z pierwotną wartością (9 = 8 + 1).
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul9(byte b) {
-        // 9 = 8 + 1, więc mnożymy przez 8 i dodajemy oryginalną wartość
-        return (byte)(gfMul8(b) ^ b);
+        return (byte) (gfMul8(b) ^ b);
     }
 
-    // gfMul11
+    /**
+     * Mnożenie przez 11 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 8, 2 i XOR z pierwotną wartością (11 = 8 + 2 + 1).
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul11(byte b) {
-        // 11 = 8 + 2 + 1
-        return (byte)(gfMul8(b) ^ gfMul2(b) ^ b);
+        return (byte) (gfMul8(b) ^ gfMul2(b) ^ b);
     }
 
-    // gfMul13
+    /**
+     * Mnożenie przez 13 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 8, 4 i XOR z pierwotną wartością (13 = 8 + 4 + 1).
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul13(byte b) {
-        // 13 = 8 + 4 + 1
-        return (byte)(gfMul8(b) ^ gfMul4(b) ^ b);
+        return (byte) (gfMul8(b) ^ gfMul4(b) ^ b);
     }
 
-    // gfMul14
+    /**
+     * Mnożenie przez 14 w ciele GF(2^8).
+     * Implementowane jako mnożenie przez 8, 4, 2 (14 = 8 + 4 + 2).
+     *
+     * @param b Bajt do pomnożenia
+     * @return Wynik mnożenia w ciele GF(2^8)
+     */
     private byte gfMul14(byte b) {
-        // 14 = 8 + 4 + 2
-        return (byte)(gfMul8(b) ^ gfMul4(b) ^ gfMul2(b));
+        return (byte) (gfMul8(b) ^ gfMul4(b) ^ gfMul2(b));
     }
 }
