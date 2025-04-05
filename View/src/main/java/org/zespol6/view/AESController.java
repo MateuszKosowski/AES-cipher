@@ -29,90 +29,62 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.Objects;
 
+/**
+ * Kontroler interfejsu użytkownika dla aplikacji AES.
+ * Obsługuje operacje szyfrowania i deszyfrowania danych z wykorzystaniem algorytmu AES.
+ */
 public class AESController {
 
-    @FXML
-    public Label keyLabel;
+    // Elementy interfejsu użytkownika
+    @FXML public Label keyLabel;
+    @FXML Button keyGenButton;
+    @FXML Button encryptButton;
+    @FXML Button decryptButton;
+    @FXML Button copyEncryptedDataButton;
+    @FXML Button copyDecryptedDataButton;
+    @FXML Button loadEncryptedButton;
+    @FXML Button loadDecryptedButton;
+    @FXML Button saveEncryptedButton;
+    @FXML Button saveDecryptedButton;
+    @FXML Button keySaveButton;
+    @FXML Button keyLoadButton;
+    @FXML TextArea decryptedDataField;
+    @FXML TextArea encryptedDataField;
+    @FXML TextField keyField;
 
-    @FXML
-    Button keyGenButton;
+    // Przyciski radiowe do wyboru długości klucza
+    @FXML RadioButton key128;
+    @FXML RadioButton key192;
+    @FXML RadioButton key256;
+    @FXML ToggleGroup key;
 
-    @FXML
-    Button encryptButton;
+    // Przyciski radiowe do wyboru źródła danych
+    @FXML RadioButton field;
+    @FXML RadioButton file;
+    @FXML ToggleGroup fieldOrFile;
 
-    @FXML
-    Button decryptButton;
+    // Dane używane przez aplikację
+    byte[] originalDataFile;     // Oryginalne dane z pliku
+    byte[] encryptedDataFile;    // Zaszyfrowane dane z pliku
+    byte[] originalDataTextField;  // Oryginalne dane z pola tekstowego
+    byte[] encryptedDataTextField; // Zaszyfrowane dane z pola tekstowego
+    byte[] keyData;              // Dane klucza
 
-    @FXML
-    Button copyEncryptedDataButton;
-
-    @FXML
-    Button copyDecryptedDataButton;
-
-    @FXML
-    Button loadEncryptedButton;
-
-    @FXML
-    Button loadDecryptedButton;
-
-    @FXML
-    Button saveEncryptedButton;
-
-    @FXML
-    Button saveDecryptedButton;
-
-    @FXML
-    Button keySaveButton;
-
-    @FXML
-    Button keyLoadButton;
-
-    @FXML
-    TextArea dataField;
-
-    @FXML
-    TextArea encryptedDataField;
-
-    @FXML
-    TextField keyField;
-
-    @FXML
-    RadioButton key128;
-
-    @FXML
-    RadioButton key192;
-
-    @FXML
-    RadioButton key256;
-
-    @FXML
-    ToggleGroup key;
-
-    @FXML
-    RadioButton field;
-
-    @FXML
-    RadioButton file;
-
-    @FXML
-    ToggleGroup fieldOrFile;
-
-    byte[] originalDataFile;
-    byte[] encryptedDataFile;
-    byte[] originalDataTextField;
-    byte[] encryptedDataTextField;
-    byte[] keyData;
-
+    /**
+     * Inicjalizuje kontroler i konfiguruje obsługę zdarzeń dla elementów interfejsu.
+     * Metoda wywoływana automatycznie przez JavaFX po załadowaniu pliku FXML.
+     */
     @FXML
     public void initialize() {
+        // Nasłuchuj zmiany wybranej długości klucza i wyczyść pole klucza
         key.selectedToggleProperty().addListener((observable, oldValue, newValue) -> keyField.clear());
 
         AES aes = new AES();
         final javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
         final javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
 
+        // Obsługa generowania klucza
         keyGenButton.setOnAction(e -> {
             int keyLength = getKeySize();
             aes.generateMainKey(keyLength);
@@ -120,11 +92,14 @@ public class AESController {
             keyField.setText(aes.bytesToHex(keyData));
         });
 
+        // Obsługa zapisywania klucza do pliku
         keySaveButton.setOnAction(e -> saveButtonAction(keyField, null, 2));
 
+        // Obsługa wczytywania klucza z pliku
         keyLoadButton.setOnAction(e -> {
             loadButtonAction(null, keyField, 2);
             String keyHex = keyField.getText();
+            // Wybierz odpowiedni przycisk radiowy na podstawie długości klucza
             switch (keyField.getLength() * 4) {
                 case 128:
                     key128.setSelected(true);
@@ -139,14 +114,17 @@ public class AESController {
             keyField.setText(keyHex);
         });
 
+        // Obsługa szyfrowania danych
         encryptButton.setOnAction(e -> {
             try {
                 String keyHex = aes.bytesToHex(keyData);
                 BigInteger keyBigInt = new BigInteger(keyHex, 16);
                 aes.setMainKey(keyBigInt);
                 byte[] expectedData;
+
+                // Szyfruj dane z pola tekstowego lub pliku
                 if (field.isSelected()) {
-                    originalDataTextField = dataField.getText().getBytes(StandardCharsets.UTF_8);
+                    originalDataTextField = decryptedDataField.getText().getBytes(StandardCharsets.UTF_8);
                     expectedData = aes.encrypt(originalDataTextField, aes.getMainKey());
                     encryptedDataTextField = Arrays.copyOf(expectedData, expectedData.length);
                 } else {
@@ -161,54 +139,70 @@ public class AESController {
             }
         });
 
+        // Obsługa wczytywania zaszyfrowanych danych
         loadEncryptedButton.setOnAction(e -> loadButtonAction(encryptedDataField, null, 0));
 
-        loadDecryptedButton.setOnAction(e -> loadButtonAction(dataField, null, 1));
+        // Obsługa wczytywania odszyfrowanych danych
+        loadDecryptedButton.setOnAction(e -> loadButtonAction(decryptedDataField, null, 1));
 
+        // Obsługa deszyfrowania danych
         decryptButton.setOnAction(e -> {
             try {
                 String keyHex = aes.bytesToHex(keyData);
                 BigInteger keyBigInt = new BigInteger(keyHex, 16);
                 aes.setMainKey(keyBigInt);
 
-                // Hex string konwertujemy na tablicę bajtów
                 byte[] expectedData;
                 if (field.isSelected()) {
+                    // Konwersja ciągu znaków hex na bajty i deszyfrowanie
                     byte[] encryptedBytes = aes.hexToBytes(encryptedDataField.getText());
                     expectedData = aes.decrypt(encryptedBytes, aes.getMainKey());
                     originalDataTextField = Arrays.copyOf(expectedData, expectedData.length);
-                    dataField.setText(new String(expectedData, StandardCharsets.UTF_8));
+                    decryptedDataField.setText(new String(expectedData, StandardCharsets.UTF_8));
                 } else {
+                    // Deszyfrowanie danych z pliku
                     expectedData = aes.decrypt(encryptedDataFile, aes.getMainKey());
                     originalDataFile = Arrays.copyOf(expectedData, expectedData.length);
-                    dataField.setText(aes.bytesToHex(expectedData));
+                    decryptedDataField.setText(aes.bytesToHex(expectedData));
                 }
 
             } catch (NumberFormatException ex) {
-                dataField.setText("Error: Invalid key format, key: " + new String(keyData).toLowerCase());
+                decryptedDataField.setText("Error: Invalid key format, key: " + new String(keyData).toLowerCase());
             } catch (Exception ex) {
-                dataField.setText("Error: " + ex.getMessage());
+                decryptedDataField.setText("Error: " + ex.getMessage());
             }
         });
 
+        // Obsługa kopiowania zaszyfrowanych danych do schowka
         copyEncryptedDataButton.setOnAction(e -> {
             content.putString(encryptedDataField.getText());
             clipboard.setContent(content);
         });
 
+        // Obsługa kopiowania odszyfrowanych danych do schowka
         copyDecryptedDataButton.setOnAction(e -> {
-            content.putString(dataField.getText());
+            content.putString(decryptedDataField.getText());
             clipboard.setContent(content);
         });
 
+        // Obsługa zapisywania zaszyfrowanych i odszyfrowanych danych
         saveEncryptedButton.setOnAction(e -> saveButtonAction(null, encryptedDataField, 0));
-
-        saveDecryptedButton.setOnAction(e -> saveButtonAction(null, dataField, 3));
+        saveDecryptedButton.setOnAction(e -> saveButtonAction(null, decryptedDataField, 3));
     }
 
+    /**
+     * Obsługuje wczytywanie danych z pliku.
+     *
+     * @param textArea   TextArea, w której mają być wyświetlone dane (może być null)
+     * @param textField  TextField, w którym mają być wyświetlone dane (może być null)
+     * @param option     Opcja określająca typ wczytywanego pliku:
+     *                   0 - zaszyfrowane dane, 1 - odszyfrowane dane, 2 - klucz
+     */
     private void loadButtonAction(TextArea textArea, TextField textField, int option) {
         // Otworzenie okienka dialogowego do wyboru pliku
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+
+        // Ustawienie tytułu okna dialogowego w zależności od opcji
         switch (option) {
             case 0:
                 fileChooser.setTitle("Wybierz plik z zaszyfrowanymi danymi");
@@ -223,6 +217,7 @@ public class AESController {
                 fileChooser.setTitle("Wybierz plik");
                 break;
         }
+
         fileChooser.getExtensionFilters().addAll(
                 new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*")
         );
@@ -231,6 +226,8 @@ public class AESController {
         if (selectedFile != null) {
             try {
                 byte[] data = Files.readAllBytes(selectedFile.toPath());
+
+                // Zapisz wczytane dane w odpowiednim polu w zależności od opcji
                 switch (option) {
                     case 0:
                         encryptedDataFile = Arrays.copyOf(data, data.length);
@@ -246,7 +243,9 @@ public class AESController {
                     default:
                         break;
                 }
+
                 AES aes = new AES();
+                // Wyświetl dane w odpowiednim polu
                 if (textArea != null) {
                     textArea.setText(aes.bytesToHex(data));
                 } else {
@@ -262,9 +261,19 @@ public class AESController {
         }
     }
 
+    /**
+     * Obsługuje zapisywanie danych do pliku.
+     *
+     * @param textField  TextField z danymi do zapisania (może być null)
+     * @param textArea   TextArea z danymi do zapisania (może być null)
+     * @param option     Opcja określająca typ zapisywanych danych:
+     *                   0 - zaszyfrowane dane, 2 - klucz, 3 - odszyfrowane dane
+     */
     private void saveButtonAction(TextField textField, TextArea textArea, int option) {
         // Otworzenie okienka dialogowego do wyboru pliku
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+
+        // Ustawienie tytułu okna dialogowego w zależności od opcji
         switch (option) {
             case 0:
                 fileChooser.setTitle("Zapisz zaszyfrowane dane");
@@ -274,11 +283,12 @@ public class AESController {
                 break;
             case 3:
                 fileChooser.setTitle("Zapisz odszyfrowane dane");
-                break; // Dodany break
+                break;
             default:
                 fileChooser.setTitle("Zapisz plik");
                 break;
         }
+
         fileChooser.getExtensionFilters().addAll(
                 new javafx.stage.FileChooser.ExtensionFilter("Wszystkie pliki", "*.*")
         );
@@ -288,6 +298,7 @@ public class AESController {
             try {
                 byte[] dataToSave = null;
 
+                // Wybór odpowiednich danych do zapisania w zależności od opcji
                 switch (option) {
                     case 0: // Zaszyfrowane dane
                         if (field.isSelected() && encryptedDataTextField != null) {
@@ -310,6 +321,7 @@ public class AESController {
                         break;
                 }
 
+                // Zapisz dane do pliku, jeśli są dostępne
                 if (dataToSave != null) {
                     java.nio.file.Files.write(selectedFile.toPath(), dataToSave);
                 } else {
@@ -317,6 +329,7 @@ public class AESController {
                 }
 
             } catch (IOException ex) {
+                // Obsługa błędu zapisu
                 if (textArea != null) {
                     textArea.setText("Error: " + ex.getMessage());
                 } else if (textField != null) {
@@ -326,6 +339,11 @@ public class AESController {
         }
     }
 
+    /**
+     * Zwraca rozmiar klucza wybrany przez użytkownika.
+     *
+     * @return Rozmiar klucza w bitach (128, 192 lub 256)
+     */
     private int getKeySize() {
         if (key128.isSelected()) {
             return 128;

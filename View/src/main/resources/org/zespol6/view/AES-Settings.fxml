@@ -97,7 +97,7 @@
                </font>
             </Button>
             </HBox>
-            <TextArea fx:id="dataField" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane" wrapText="true" VBox.vgrow="ALWAYS">
+            <TextArea fx:id="decryptedDataField" minHeight="300.0" prefHeight="300.0" promptText="Dane odszyfrowane" wrapText="true" VBox.vgrow="ALWAYS">
                 <font>
                     <Font size="14.0" />
                 </font>
