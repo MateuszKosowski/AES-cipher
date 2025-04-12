@@ -116,7 +116,7 @@ public class AESController {
         keyGenButton.setOnAction(e -> {
             int keyLength = getKeySize();
             aes.generateMainKey(keyLength);
-            keyData = aes.getMainKey().toByteArray();
+            keyData = aes.toByteKey(aes.getMainKey());
             keyField.setText(aes.bytesToHex(keyData));
         });
 
