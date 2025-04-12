@@ -137,18 +137,50 @@ public class AES {
         return expandedKey;
     }
 
-    // toByteKey
     public byte[] toByteKey(BigInteger key) {
-        byte[] keyBytes = key.toByteArray();
-        byte[] fixedKey = new byte[blockSize];
 
-        if (keyBytes.length > blockSize) {
-            // Jeśli klucz jest za długi, bierzemy ostatnie 16 bajtów
-            System.arraycopy(keyBytes, keyBytes.length - blockSize, fixedKey, 0, blockSize);
+        int bitLength = key.bitLength();
+        int targetKeySizeBytes; // Docelowa długość klucza w bajtach
+
+        // Określenie docelowej długości klucza AES
+        if (bitLength <= 128) {
+            targetKeySizeBytes = 16; // 128 bitów
+        } else if (bitLength <= 192) {
+            targetKeySizeBytes = 24; // 192 bity
+        } else if (bitLength <= 256) {
+            targetKeySizeBytes = 32; // 256 bitów
         } else {
-            // Jeśli klucz jest za krótki, wypełniamy zerami od początku
-            System.arraycopy(keyBytes, 0, fixedKey, blockSize - keyBytes.length, keyBytes.length);
+            // Klucz jest definitywnie za duży
+            throw new IllegalArgumentException("Rozmiar klucza AES nie może być większy niż 256 bitów.");
         }
+
+        // Konwersja BigInteger na bajty
+        byte[] keyBytes = key.toByteArray();
+        byte[] fixedKey = new byte[targetKeySizeBytes]; // Tablica wynikowa wypełniona zerami
+
+        int keyBytesLength = keyBytes.length;
+        int sourceOffset = 0; // Od którego bajtu zacząć kopiowanie z keyBytes
+
+        // Sprawdzenie, czy BigInteger dodał wiodący bajt zerowy (dla liczb dodatnich)
+        if (keyBytes[0] == 0 && keyBytesLength > 1) { // > 1 aby uniknąć problemu z BigInteger(0).toByteArray() -> [0]
+            sourceOffset = 1;        // Pomiń wiodące zero
+            keyBytesLength = keyBytesLength - 1;
+        }
+
+        // Sprawdzenie, czy faktyczna liczba bajtów (po usunięciu ew. wiodącego zera)
+        // nie przekracza docelowego rozmiaru klucza.
+        if (keyBytesLength > targetKeySizeBytes) {
+            throw new IllegalArgumentException(
+                    "Rozmiar klucza AES nie może być większy niż " + targetKeySizeBytes * 8 + " bitów.");
+        }
+
+        // Obliczenie pozycji startowej w tablicy docelowej (fixedKey),
+        // aby skopiowane bajty znalazły się na końcu (padding zerami z lewej).
+        int destinationOffset = targetKeySizeBytes - keyBytesLength;
+
+        // Kopiowanie właściwych bajtów z keyBytes do fixedKey
+        System.arraycopy(keyBytes, sourceOffset, fixedKey, destinationOffset, keyBytesLength);
+
         return fixedKey;
     }
 
