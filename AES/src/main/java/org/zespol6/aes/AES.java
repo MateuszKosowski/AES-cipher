@@ -26,7 +26,6 @@ public class AES {
 
     private int amountOfRounds = 10;
     private final int blockSize = 16;
-    private byte[] data;
     private BigInteger mainKey;
     private byte[] expandedKey;
 
@@ -72,10 +71,7 @@ public class AES {
 
     // Stała RCON - wartości używane w kluczach rundy
     private final int[] RCON = {
-            0x01, 0x02, 0x04, 0x08,
-            0x10, 0x20, 0x40, 0x80,
-            0x1B, 0x36, 0x6C, 0xD8,
-            0xAB, 0x4D
+            0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A
     };
 
     // Stała MCOL - macierz mnożenia w mixColumns
@@ -92,12 +88,6 @@ public class AES {
             13, 9, 14, 11,
             11, 13, 9, 14
     };
-
-    // readFromText
-    public void readStringToBytes(String text) {
-        data = text.getBytes(StandardCharsets.UTF_8);
-    }
-
 
     // bytesToString
     public String bytesToString(byte[] data) {
@@ -123,11 +113,6 @@ public class AES {
                     + Character.digit(hex.charAt(i+1), 16));
         }
         return data;
-    }
-
-    // getData
-    public byte[] getData() {
-        return (data != null) ? data : new byte[0];
     }
 
     // generateMainKey
@@ -171,7 +156,9 @@ public class AES {
     public void keyExpansion(BigInteger mainKey) {
         final byte[] fixedMainKey = toByteKey(mainKey);
         int keySize = fixedMainKey.length;
+        int keySizeInWords = keySize / 4;
 
+        // Określenie liczby rund na podstawie rozmiaru klucza
         if (keySize == 16) {
             amountOfRounds = 10;
         } else if (keySize == 24) {
@@ -184,89 +171,37 @@ public class AES {
 
         // Buffor na wszystkie podklucze + klucz główny
         byte[] expandedKey = new byte[16 * (amountOfRounds + 1)];
+        int totalWords = expandedKey.length / 4; // Całkowita liczba słów w rozszerzonym kluczu
 
         // Kopiowanie klucza głównego na początek
         System.arraycopy(fixedMainKey, 0, expandedKey, 0, keySize);
 
-        int currentPos = keySize;
+        int currentPos = keySizeInWords;
+        byte[] temp = new byte[4];
 
-        // Generowanie kolejnych podkluczy
-        for (int i = 1; i <= amountOfRounds; i++) {
+        // Zmieniony warunek pętli - sprawdzamy liczbę słów, nie bajtów
+        while (currentPos < totalWords) {
+            // Kopiujemy poprzednie słowo
+            System.arraycopy(expandedKey, (currentPos - 1) * 4, temp, 0, 4);
 
-            byte [] temp = new byte[4];
-            System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
-
-            // Utworzenie 4 kolejnych bajtów klucza
-
-                // RotWord - przesunięcie w lewo o 1 bajt w buforze temp
-                byte tempByte = temp[0];
-                for (int j = 0; j < 3; j++) {
-                    temp[j] = temp[j + 1];
-                }
-                temp[3] = tempByte;
-
-                // SubWord - zastąpienie każdego bajtu w buforze temp zgodnie z tabelą SBOX
+            if (currentPos % keySizeInWords == 0) {
+                rotWord(temp);
                 subBytes(temp, 4);
-
-                // XORowanie pierwszego bajtu słowa z RCON
-                temp[0] ^=  getRconValue(i);
-
-                // XORowanie z poprzednim podkluczem
-                for (int j = 0; j < 4; j++) {
-                    temp[j] ^= expandedKey[currentPos - keySize + j];
-                }
-
-            System.arraycopy(temp, 0, expandedKey, currentPos, 4);
-            currentPos += 4;
-
-            // Utworzenie kolejnych 12 bajtów klucza
-            for(int j = 0; j < 3; j++) {
-
-                // nie wiem czy to jest potrzebne
-                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
-
-                for(int k = 0; k < 4; k++) {
-                    temp[k] ^= expandedKey[currentPos - keySize + k];
-                }
-
-                System.arraycopy(temp, 0, expandedKey, currentPos, 4);
-                currentPos += 4;
-            }
-
-            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 4 bajty
-            if (keySize == 32) {
-                // Dla klucza 256-bitowego dodajemy jeszcze 4 bajty
-                System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
-
+                // Indeks RCON zależy od numeru rundy, nie od pozycji
+                temp[0] ^= getRconValue(currentPos / keySizeInWords);
+            } else if (keySizeInWords == 8 && currentPos % keySizeInWords == 4) {
+                // Dodatkowa operacja dla kluczy 256-bitowych
                 subBytes(temp, 4);
-
-                for(int k = 0; k < 4; k++) {
-                    temp[k] ^= expandedKey[currentPos - 4 + k];
-                }
-
-                System.arraycopy(temp, 0, expandedKey, currentPos, 4);
-                currentPos += 4;
             }
 
-            // Jeśli klucz 192-bitowy, to dodajemy jeszcze 8 bajtów
-            // Jeśli klucz 256-bitowy, to dodajemy jeszcze 12 bajtów
-            if (keySize > 16) {
-                int x;
-
-                if (keySize == 24) x = 2;
-                else x = 3;
-
-                for (int j = 0; j < x; j++) {
-                    System.arraycopy(expandedKey, currentPos - 4, temp, 0, 4);
-
-                    for(int k = 0; k < 4; k++) {
-                        temp[k] ^= expandedKey[currentPos - 4 + k];
-                    }
-
-                    System.arraycopy(temp, 0, expandedKey, currentPos, 4);
-                    currentPos += 4;
-                }
+            // XOR z odpowiednim słowem z poprzedniego cyklu
+            for (int i = 0; i < 4; i++) {
+                temp[i] ^= expandedKey[(currentPos - keySizeInWords) * 4 + i];
             }
+
+            // Zapisanie wygenerowanego słowa
+            System.arraycopy(temp, 0, expandedKey, currentPos * 4, 4);
+            currentPos++;
         }
 
         this.expandedKey = expandedKey;
@@ -380,10 +315,18 @@ public class AES {
 
     // getRconValue
     private byte getRconValue(int iteration) {
-        if (iteration > RCON.length) {
+        if (iteration <= 0 || iteration > RCON.length) {
             throw new IllegalArgumentException("RCON iteration out of bounds");
         }
         return (byte) RCON[iteration - 1];
+    }
+
+    private void rotWord(byte[] temp) {
+        byte tempByte = temp[0];
+        for (int j = 0; j < 3; j++) {
+            temp[j] = temp[j + 1];
+        }
+        temp[3] = tempByte;
     }
 
     // addRoundKey
